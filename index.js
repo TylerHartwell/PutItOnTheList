@@ -20,6 +20,13 @@ const inputFieldEl = document.getElementById("input-field")
 const addButtonEl = document.getElementById("add-button")
 const shoppingListEl = document.getElementById("shopping-list")
 
+inputFieldEl.addEventListener("keyup", function(e) {
+    e.preventDefault();
+    if (e.key === 'Enter') {
+        addButtonEl.click();
+    }
+});
+
 addButtonEl.addEventListener("click", function() {
     let inputValue = inputFieldEl.value
     if(inputValue !== "") {
@@ -63,12 +70,18 @@ function appendItemToShoppingListEl(item) {
     let newEl = document.createElement("li")
     
     newEl.textContent = itemValue
+    //let isHighlighted = false
+    //need to make item values objects with a text property and an isHighlighted property instead of just single strings as values
     
-    newEl.addEventListener("click", function() {
+    newEl.addEventListener("dblclick", function() {
         let exactLocationOfItemInDB = ref(database, `shoppingList/${itemID}`)
         
         remove(exactLocationOfItemInDB)
     })
+    
+    // newEl.addEventListener("click", function() {
+    //     change border color to green or transparent
+    // })
     
     shoppingListEl.append(newEl)
 }
