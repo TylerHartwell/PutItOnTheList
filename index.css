@@ -42,9 +42,11 @@ button {
     font-family: 'Rubik', sans-serif;
 }
 
-button:hover {
-    background-color: #432000;
-    cursor: pointer;
+@media(hover: hover) {
+    button:hover {
+        background-color: #432000;
+        cursor: pointer;
+    }
 }
 
 ul {
