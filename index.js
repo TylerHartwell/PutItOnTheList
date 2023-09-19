@@ -26,7 +26,8 @@ inputFieldEl.addEventListener("keyup", function(e) {
     }
 });
 
-addButtonEl.addEventListener("click", function() {
+addButtonEl.addEventListener("click", function(e) {
+    e.preventDefault();
     let inputValue = inputFieldEl.value
     if(inputValue !== "") {
         let item = {itemName: inputValue, itemHighlighted: false}
@@ -50,10 +51,9 @@ onValue(shoppingListInDB, function(snapshot) {
 
 function appendItemToShoppingListEl(item) {
     let itemID = item[0]
-    let itemValue = item[1].itemName
-    let itemHighlighted = item[1].itemHighlighted
+    let { itemName, itemHighlighted} = item[1]
     let newEl = document.createElement("li")
-    newEl.textContent = itemValue
+    newEl.textContent = itemName
    
     newEl.addEventListener("dblclick", function(e) {
         e.stopPropagation()
