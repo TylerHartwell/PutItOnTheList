@@ -35,17 +35,8 @@ inputFieldEl.addEventListener("keyup", function (e) {
 })
 
 addButtonEl.addEventListener("click", addInputToList)
-
 shoppingListEl.addEventListener("click", deleteItem)
-// shoppingListEl.addEventListener("click", toggleHighlight)
-
-function deleteItem(e) {
-  if (e.target.classList.contains("delete")) {
-    const itemID = e.target.parentElement.id
-    let exactLocationOfItemInDB = ref(database, `${shoppingListName}/${itemID}`)
-    remove(exactLocationOfItemInDB)
-  }
-}
+shoppingListEl.addEventListener("click", toggleHighlight)
 
 onValue(shoppingListInDB, function (snapshot) {
   if (snapshot.exists()) {
@@ -60,26 +51,44 @@ onValue(shoppingListInDB, function (snapshot) {
   }
 })
 
+function toggleHighlight(e) {
+  if (e.target.classList.contains("mark")) {
+    const li = e.target.parentElement
+    if (li.classList.contains("item")) {
+      const itemID = li.id
+      const itemHighlighted = li.dataset.itemHighlighted === "true"
+      set(
+        ref(database, `${shoppingListName}/${itemID}/itemHighlighted`),
+        !itemHighlighted
+      )
+    }
+  }
+}
+
+function deleteItem(e) {
+  if (e.target.classList.contains("delete")) {
+    const itemID = e.target.parentElement.id
+    let exactLocationOfItemInDB = ref(database, `${shoppingListName}/${itemID}`)
+    remove(exactLocationOfItemInDB)
+  }
+}
+
 function appendItemToShoppingListEl(item) {
   const itemID = item[0]
   let { itemName, itemHighlighted } = item[1]
   const li = document.createElement("li")
   const deleteBtn = createButton("delete", "X")
-  // const markBtn = createButton("mark", "✔️")
+  const markBtn = createButton("mark", "✔️")
 
   li.id = itemID
   li.textContent = itemName
-
-  li.addEventListener("click", function () {
-    set(
-      ref(database, `${shoppingListName}/${itemID}/itemHighlighted`),
-      !itemHighlighted
-    )
-    applyHighlightStatus(item, li)
-  })
+  li.classList.add("item")
+  li.dataset.itemHighlighted = itemHighlighted
+  applyHighlightStatus(item, li)
 
   shoppingListEl.append(li)
   li.appendChild(deleteBtn)
+  li.appendChild(markBtn)
   applyHighlightStatus(item, li)
 }
 

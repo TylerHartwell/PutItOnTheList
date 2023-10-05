@@ -96,3 +96,23 @@ ul li:hover {
 .delete:hover {
   background-color: lightgray;
 }
+
+.mark {
+  margin-right: -10px;
+  margin-left: auto;
+  font-weight: 900;
+  text-align: center;
+  line-height: 0%;
+  padding: 0;
+  min-width: 30px;
+  min-height: 30px;
+  order: 1;
+  color: red;
+  cursor: pointer;
+  border: none;
+  background-color: transparent;
+}
+
+.mark:hover {
+  background-color: lightgray;
+}
