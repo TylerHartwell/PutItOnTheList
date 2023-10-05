@@ -61,7 +61,8 @@ function appendItemToShoppingListEl(item) {
   const itemID = item[0]
   let { itemName, itemHighlighted } = item[1]
   const li = document.createElement("li")
-  const deleteBtn = createButton("delete")
+  const deleteBtn = createButton("delete", "X")
+  // const markBtn = createButton("delete", "✔️")
 
   li.textContent = itemName
 
@@ -77,16 +78,17 @@ function appendItemToShoppingListEl(item) {
     )
     applyHighlightStatus(item, li)
   })
+
   shoppingListEl.append(li)
   li.appendChild(deleteBtn)
   console.log(li)
   applyHighlightStatus(item, li)
 }
 
-function createButton(classes) {
+function createButton(classes, content) {
   const button = document.createElement("button")
   button.className = classes
-  button.appendChild(document.createTextNode("X"))
+  button.appendChild(document.createTextNode(content))
   return button
 }
 
