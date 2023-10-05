@@ -43,8 +43,18 @@ input {
   font-family: "Rubik", sans-serif;
 }
 
-#add-button:hover {
+#add-button:active {
   background-color: green;
+}
+
+@media (hover: hover) {
+  #add-button:hover {
+    background-color: green;
+  }
+
+  ul li:hover {
+    background-color: #ffecc7;
+  }
 }
 
 ul {
@@ -63,18 +73,14 @@ ul li {
   align-items: center;
   justify-content: left;
   background-color: #fffdf8;
+  max-width: 100%;
   padding: 10px;
   border-radius: 8px;
   flex-grow: 1;
-  text-align: left;
-  overflow: auto;
+  overflow: hidden;
   border: 2px solid transparent;
   margin: 0;
   box-shadow: 0px 1px 4px rgba(0, 0, 0, 0.2);
-}
-
-ul li:hover {
-  background-color: #ffecc7;
 }
 
 .delete {
@@ -93,13 +99,14 @@ ul li:hover {
   background-color: transparent;
 }
 
-.delete:hover {
-  background-color: lightgray;
+.item-text {
+  overflow: auto;
 }
 
 .mark {
   margin-right: -10px;
   margin-left: auto;
+  justify-self: flex-end;
   font-weight: 900;
   text-align: center;
   line-height: 0%;
@@ -107,12 +114,12 @@ ul li:hover {
   min-width: 30px;
   min-height: 30px;
   order: 1;
-  color: red;
   cursor: pointer;
   border: none;
   background-color: transparent;
 }
 
+.delete:hover,
 .mark:hover {
-  background-color: lightgray;
+  scale: 1.5;
 }

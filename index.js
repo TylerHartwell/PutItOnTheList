@@ -77,17 +77,20 @@ function appendItemToShoppingListEl(item) {
   const itemID = item[0]
   let { itemName, itemHighlighted } = item[1]
   const li = document.createElement("li")
+  const itemText = document.createElement("div")
   const deleteBtn = createButton("delete", "X")
   const markBtn = createButton("mark", "✔️")
 
   li.id = itemID
-  li.textContent = itemName
+  itemText.textContent = itemName
+  itemText.classList.add("item-text")
   li.classList.add("item")
   li.dataset.itemHighlighted = itemHighlighted
   applyHighlightStatus(item, li)
 
   shoppingListEl.append(li)
   li.appendChild(deleteBtn)
+  li.appendChild(itemText)
   li.appendChild(markBtn)
   applyHighlightStatus(item, li)
 }
