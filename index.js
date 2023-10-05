@@ -34,15 +34,18 @@ inputFieldEl.addEventListener("keyup", function (e) {
   }
 })
 
-addButtonEl.addEventListener("click", function (e) {
-  e.preventDefault()
-  let inputValue = inputFieldEl.value
-  if (inputValue !== "") {
-    let item = { itemName: inputValue, itemHighlighted: false }
-    push(shoppingListInDB, item)
-    clearInputFieldEl()
+addButtonEl.addEventListener("click", addInputToList)
+
+shoppingListEl.addEventListener("click", deleteItem)
+// shoppingListEl.addEventListener("click", toggleHighlight)
+
+function deleteItem(e) {
+  if (e.target.classList.contains("delete")) {
+    const itemID = e.target.parentElement.id
+    let exactLocationOfItemInDB = ref(database, `${shoppingListName}/${itemID}`)
+    remove(exactLocationOfItemInDB)
   }
-})
+}
 
 onValue(shoppingListInDB, function (snapshot) {
   if (snapshot.exists()) {
@@ -62,15 +65,11 @@ function appendItemToShoppingListEl(item) {
   let { itemName, itemHighlighted } = item[1]
   const li = document.createElement("li")
   const deleteBtn = createButton("delete", "X")
-  // const markBtn = createButton("delete", "✔️")
+  // const markBtn = createButton("mark", "✔️")
 
+  li.id = itemID
   li.textContent = itemName
 
-  deleteBtn.addEventListener("click", function (e) {
-    e.stopPropagation()
-    let exactLocationOfItemInDB = ref(database, `${shoppingListName}/${itemID}`)
-    remove(exactLocationOfItemInDB)
-  })
   li.addEventListener("click", function () {
     set(
       ref(database, `${shoppingListName}/${itemID}/itemHighlighted`),
@@ -81,7 +80,6 @@ function appendItemToShoppingListEl(item) {
 
   shoppingListEl.append(li)
   li.appendChild(deleteBtn)
-  console.log(li)
   applyHighlightStatus(item, li)
 }
 
@@ -106,4 +104,14 @@ function clearShoppingListEl() {
 
 function clearInputFieldEl() {
   inputFieldEl.value = ""
+}
+
+function addInputToList(e) {
+  e.preventDefault()
+  let inputValue = inputFieldEl.value
+  if (inputValue !== "") {
+    let item = { itemName: inputValue, itemHighlighted: false }
+    push(shoppingListInDB, item)
+    clearInputFieldEl()
+  }
 }
