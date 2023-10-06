@@ -73,20 +73,25 @@ ul li {
   box-shadow: 0px 1px 4px rgba(0, 0, 0, 0.2);
 }
 
+.mark,
 .delete {
-  margin-right: 10px;
-  margin-left: -10px;
+  cursor: pointer;
+  border: none;
+  background-color: transparent;
   font-weight: 900;
   text-align: center;
   line-height: 0%;
   padding: 0;
   min-width: 30px;
   min-height: 30px;
+  transition: scale 0.1s ease;
+}
+
+.delete {
+  margin-right: 10px;
+  margin-left: -10px;
   order: -1;
   color: red;
-  cursor: pointer;
-  border: none;
-  background-color: transparent;
 }
 
 .item-text {
@@ -97,16 +102,7 @@ ul li {
   margin-right: -10px;
   margin-left: auto;
   justify-self: flex-end;
-  font-weight: 900;
-  text-align: center;
-  line-height: 0%;
-  padding: 0;
-  min-width: 30px;
-  min-height: 30px;
   order: 1;
-  cursor: pointer;
-  border: none;
-  background-color: transparent;
 }
 
 .delete:hover,

@@ -27,8 +27,8 @@ const inputFieldEl = document.getElementById("input-field")
 const addButtonEl = document.getElementById("add-button")
 const shoppingListEl = document.getElementById("shopping-list")
 const groupOptionsEl = document.getElementById("group-options")
-const deleteAllItemsBtn = makeNewEl("button", "delete-all", "Delete All")
-groupOptionsEl.appendChild(deleteAllItemsBtn)
+// const deleteAllItemsBtn = makeNewEl("button", "delete-all", "Delete All")
+// groupOptionsEl.appendChild(deleteAllItemsBtn)
 
 inputFieldEl.addEventListener("keyup", function (e) {
   e.preventDefault()
@@ -81,13 +81,15 @@ function deleteItem(e) {
 
 function deleteAllItems(e) {
   if (e.target.classList.contains("delete-all")) {
-    while (shoppingListEl.firstChild.id) {
-      const itemID = shoppingListEl.firstChild.id
-      let exactLocationOfItemInDB = ref(
-        database,
-        `${shoppingListName}/${itemID}`
-      )
-      remove(exactLocationOfItemInDB)
+    if (confirm("Delete all items from current list?") === true) {
+      while (shoppingListEl.firstChild.id) {
+        const itemID = shoppingListEl.firstChild.id
+        let exactLocationOfItemInDB = ref(
+          database,
+          `${shoppingListName}/${itemID}`
+        )
+        remove(exactLocationOfItemInDB)
+      }
     }
   }
 }
