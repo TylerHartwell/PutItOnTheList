@@ -39,6 +39,7 @@ addButtonEl.addEventListener("click", addInputToList)
 shoppingListEl.addEventListener("click", deleteItem)
 shoppingListEl.addEventListener("click", toggleHighlight)
 groupOptionsEl.addEventListener("click", deleteAllItems)
+groupOptionsEl.addEventListener("click", markAllItems)
 
 onValue(shoppingListInDB, function (snapshot) {
   if (snapshot.exists()) {
@@ -74,6 +75,20 @@ function deleteItem(e) {
     const itemID = e.target.parentElement.id
     let exactLocationOfItemInDB = ref(database, `${shoppingListName}/${itemID}`)
     remove(exactLocationOfItemInDB)
+  }
+}
+
+function markAllItems(e) {
+  if (e.target.classList.contains("mark-all")) {
+    Array.from(shoppingListEl.children).forEach(li => {
+      if (li.dataset.itemHighlighted !== "true") {
+        const itemID = li.id
+        set(
+          ref(database, `${shoppingListName}/${itemID}/itemHighlighted`),
+          true
+        )
+      }
+    })
   }
 }
 
