@@ -37,9 +37,11 @@ inputFieldEl.addEventListener("keyup", function (e) {
 
 addButtonEl.addEventListener("click", addInputToList)
 shoppingListEl.addEventListener("click", deleteItem)
+shoppingListEl.addEventListener("click", editItem)
 shoppingListEl.addEventListener("click", toggleHighlight)
 groupOptionsEl.addEventListener("click", deleteAllItems)
 groupOptionsEl.addEventListener("click", markAllItems)
+groupOptionsEl.addEventListener("click", unmarkAllItems)
 
 onValue(shoppingListInDB, function (snapshot) {
   if (snapshot.exists()) {
@@ -92,6 +94,20 @@ function markAllItems(e) {
   }
 }
 
+function unmarkAllItems(e) {
+  if (e.target.classList.contains("unmark-all")) {
+    Array.from(shoppingListEl.children).forEach(li => {
+      if (li.dataset.itemHighlighted !== "false") {
+        const itemID = li.id
+        set(
+          ref(database, `${shoppingListName}/${itemID}/itemHighlighted`),
+          false
+        )
+      }
+    })
+  }
+}
+
 function deleteAllItems(e) {
   if (e.target.classList.contains("delete-all")) {
     if (confirm("Delete all items from current list?") === true) {
@@ -107,6 +123,24 @@ function deleteAllItems(e) {
   }
 }
 
+function saveEditedItem(e) {
+  const li = e.target.parentElement
+  if (li.classList.contains("item")) {
+    const itemID = li.id
+    set(
+      ref(database, `${shoppingListName}/${itemID}/itemName`),
+      e.target.textContent
+    )
+  }
+  e.target.removeEventListener("blur", saveEditedItem)
+}
+
+function editItem(e) {
+  if (e.target.classList.contains("item-text")) {
+    e.target.addEventListener("blur", saveEditedItem)
+  }
+}
+
 function appendItemToShoppingListEl(item) {
   const itemID = item[0]
   const { itemName, itemHighlighted } = item[1]
@@ -118,6 +152,8 @@ function appendItemToShoppingListEl(item) {
   li.id = itemID
   li.dataset.itemHighlighted = itemHighlighted
   applyHighlightStatus(item, li)
+
+  itemText.setAttribute("contenteditable", "plaintext-only")
 
   shoppingListEl.append(li)
   li.appendChild(deleteBtn)
