@@ -47,16 +47,6 @@ input {
   background-color: green;
 }
 
-@media (hover: hover) {
-  #add-button:hover {
-    background-color: green;
-  }
-
-  ul li:hover {
-    background-color: #ffecc7;
-  }
-}
-
 ul {
   list-style-type: none;
   padding: 0;
@@ -122,4 +112,14 @@ ul li {
 .delete:hover,
 .mark:hover {
   scale: 1.5;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  #add-button:hover {
+    background-color: green;
+  }
+
+  ul li:hover {
+    background-color: #ffecc7;
+  }
 }

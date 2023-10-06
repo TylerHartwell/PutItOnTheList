@@ -26,6 +26,9 @@ const shoppingListInDB = ref(database, shoppingListName)
 const inputFieldEl = document.getElementById("input-field")
 const addButtonEl = document.getElementById("add-button")
 const shoppingListEl = document.getElementById("shopping-list")
+const groupOptionsEl = document.getElementById("group-options")
+const deleteAllItemsBtn = makeNewEl("button", "delete-all", "Delete All")
+groupOptionsEl.appendChild(deleteAllItemsBtn)
 
 inputFieldEl.addEventListener("keyup", function (e) {
   e.preventDefault()
@@ -37,6 +40,7 @@ inputFieldEl.addEventListener("keyup", function (e) {
 addButtonEl.addEventListener("click", addInputToList)
 shoppingListEl.addEventListener("click", deleteItem)
 shoppingListEl.addEventListener("click", toggleHighlight)
+groupOptionsEl.addEventListener("click", deleteAllItems)
 
 onValue(shoppingListInDB, function (snapshot) {
   if (snapshot.exists()) {
@@ -46,8 +50,10 @@ onValue(shoppingListInDB, function (snapshot) {
       let currentItem = itemsArray[i]
       appendItemToShoppingListEl(currentItem)
     }
+    groupOptionsEl.hidden = false
   } else {
     shoppingListEl.innerHTML = "No items here... yet"
+    groupOptionsEl.hidden = true
   }
 })
 
@@ -73,18 +79,28 @@ function deleteItem(e) {
   }
 }
 
+function deleteAllItems(e) {
+  if (e.target.classList.contains("delete-all")) {
+    while (shoppingListEl.firstChild.id) {
+      const itemID = shoppingListEl.firstChild.id
+      let exactLocationOfItemInDB = ref(
+        database,
+        `${shoppingListName}/${itemID}`
+      )
+      remove(exactLocationOfItemInDB)
+    }
+  }
+}
+
 function appendItemToShoppingListEl(item) {
   const itemID = item[0]
-  let { itemName, itemHighlighted } = item[1]
-  const li = document.createElement("li")
-  const itemText = document.createElement("div")
-  const deleteBtn = createButton("delete", "X")
-  const markBtn = createButton("mark", "✔️")
+  const { itemName, itemHighlighted } = item[1]
+  const li = makeNewEl("li", "item")
+  const itemText = makeNewEl("div", "item-text", itemName)
+  const deleteBtn = makeNewEl("button", "delete", "X")
+  const markBtn = makeNewEl("button", "mark", "✔️")
 
   li.id = itemID
-  itemText.textContent = itemName
-  itemText.classList.add("item-text")
-  li.classList.add("item")
   li.dataset.itemHighlighted = itemHighlighted
   applyHighlightStatus(item, li)
 
@@ -95,11 +111,13 @@ function appendItemToShoppingListEl(item) {
   applyHighlightStatus(item, li)
 }
 
-function createButton(classes, content) {
-  const button = document.createElement("button")
-  button.className = classes
-  button.appendChild(document.createTextNode(content))
-  return button
+function makeNewEl(tag = "div", classes = "newEl", text) {
+  const el = document.createElement(tag)
+  el.className = classes
+  if (text) {
+    el.appendChild(document.createTextNode(text))
+  }
+  return el
 }
 
 function applyHighlightStatus(item, li) {
