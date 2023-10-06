@@ -27,8 +27,6 @@ const inputFieldEl = document.getElementById("input-field")
 const addButtonEl = document.getElementById("add-button")
 const shoppingListEl = document.getElementById("shopping-list")
 const groupOptionsEl = document.getElementById("group-options")
-// const deleteAllItemsBtn = makeNewEl("button", "delete-all", "Delete All")
-// groupOptionsEl.appendChild(deleteAllItemsBtn)
 
 inputFieldEl.addEventListener("keyup", function (e) {
   e.preventDefault()
@@ -52,7 +50,7 @@ onValue(shoppingListInDB, function (snapshot) {
     }
     groupOptionsEl.hidden = false
   } else {
-    shoppingListEl.innerHTML = "No items here... yet"
+    shoppingListEl.innerHTML = "No items here...yet"
     groupOptionsEl.hidden = true
   }
 })

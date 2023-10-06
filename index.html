@@ -32,9 +32,16 @@
   <body>
     <div class="container">
       <img src="assets/cat.png" />
-      <input type="text" id="input-field" placeholder="Enter Item" />
+      <input
+        type="text"
+        id="input-field"
+        placeholder="Enter Item"
+        autocomplete="off"
+      />
       <button id="add-button">Put It On The List</button>
-      <ul id="shopping-list"></ul>
+      <ul id="shopping-list">
+        No items here...yet
+      </ul>
       <div id="group-options" hidden>
         <button class="delete-all">Delete All</button>
       </div>
