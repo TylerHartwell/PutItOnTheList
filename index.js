@@ -20,13 +20,18 @@ const appSettings = {
 
 const app = initializeApp(appSettings)
 const database = getDatabase(app)
-const shoppingListName = "shoppingList"
-const shoppingListInDB = ref(database, shoppingListName)
+const groupId = "shoppingList"
+const shoppingListInDB = ref(database, groupId)
 
 const inputFieldEl = document.getElementById("input-field")
 const addButtonEl = document.getElementById("add-button")
 const shoppingListEl = document.getElementById("shopping-list")
-const groupOptionsEl = document.getElementById("group-options")
+const multiOptionsEl = document.getElementById("multi-options")
+
+if (localStorage.getItem("group-ids") === null) {
+  const newGroupId = Date.now()
+  localStorage.setItem("group-ids", [newGroupId])
+}
 
 inputFieldEl.addEventListener("keyup", function (e) {
   e.preventDefault()
@@ -39,9 +44,9 @@ addButtonEl.addEventListener("click", addInputToList)
 shoppingListEl.addEventListener("click", deleteItem)
 shoppingListEl.addEventListener("click", editItem)
 shoppingListEl.addEventListener("click", toggleHighlight)
-groupOptionsEl.addEventListener("click", deleteAllItems)
-groupOptionsEl.addEventListener("click", markAllItems)
-groupOptionsEl.addEventListener("click", unmarkAllItems)
+multiOptionsEl.addEventListener("click", deleteAllItems)
+multiOptionsEl.addEventListener("click", markAllItems)
+multiOptionsEl.addEventListener("click", unmarkAllItems)
 
 onValue(shoppingListInDB, function (snapshot) {
   if (snapshot.exists()) {
@@ -51,10 +56,10 @@ onValue(shoppingListInDB, function (snapshot) {
       let currentItem = itemsArray[i]
       appendItemToShoppingListEl(currentItem)
     }
-    groupOptionsEl.hidden = false
+    multiOptionsEl.hidden = false
   } else {
     shoppingListEl.innerHTML = "No items here...yet"
-    groupOptionsEl.hidden = true
+    multiOptionsEl.hidden = true
   }
 })
 
@@ -65,7 +70,7 @@ function toggleHighlight(e) {
       const itemID = li.id
       const itemHighlighted = li.dataset.itemHighlighted === "true"
       set(
-        ref(database, `${shoppingListName}/${itemID}/itemHighlighted`),
+        ref(database, `${groupId}/${itemID}/itemHighlighted`),
         !itemHighlighted
       )
     }
@@ -75,7 +80,7 @@ function toggleHighlight(e) {
 function deleteItem(e) {
   if (e.target.classList.contains("delete")) {
     const itemID = e.target.parentElement.id
-    let exactLocationOfItemInDB = ref(database, `${shoppingListName}/${itemID}`)
+    let exactLocationOfItemInDB = ref(database, `${groupId}/${itemID}`)
     remove(exactLocationOfItemInDB)
   }
 }
@@ -85,10 +90,7 @@ function markAllItems(e) {
     Array.from(shoppingListEl.children).forEach(li => {
       if (li.dataset.itemHighlighted !== "true") {
         const itemID = li.id
-        set(
-          ref(database, `${shoppingListName}/${itemID}/itemHighlighted`),
-          true
-        )
+        set(ref(database, `${groupId}/${itemID}/itemHighlighted`), true)
       }
     })
   }
@@ -99,10 +101,7 @@ function unmarkAllItems(e) {
     Array.from(shoppingListEl.children).forEach(li => {
       if (li.dataset.itemHighlighted !== "false") {
         const itemID = li.id
-        set(
-          ref(database, `${shoppingListName}/${itemID}/itemHighlighted`),
-          false
-        )
+        set(ref(database, `${groupId}/${itemID}/itemHighlighted`), false)
       }
     })
   }
@@ -113,10 +112,7 @@ function deleteAllItems(e) {
     if (confirm("Delete all items from current list?") === true) {
       while (shoppingListEl.firstChild.id) {
         const itemID = shoppingListEl.firstChild.id
-        let exactLocationOfItemInDB = ref(
-          database,
-          `${shoppingListName}/${itemID}`
-        )
+        let exactLocationOfItemInDB = ref(database, `${groupId}/${itemID}`)
         remove(exactLocationOfItemInDB)
       }
     }
@@ -127,10 +123,7 @@ function saveEditedItem(e) {
   const li = e.target.parentElement
   if (li.classList.contains("item")) {
     const itemID = li.id
-    set(
-      ref(database, `${shoppingListName}/${itemID}/itemName`),
-      e.target.textContent
-    )
+    set(ref(database, `${groupId}/${itemID}/itemName`), e.target.textContent)
   }
   e.target.removeEventListener("blur", saveEditedItem)
 }
