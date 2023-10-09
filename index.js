@@ -20,8 +20,7 @@ const appSettings = {
 
 const app = initializeApp(appSettings)
 const database = getDatabase(app)
-const groupId = "shoppingList"
-const shoppingListInDB = ref(database, groupId)
+let groupId
 
 const inputFieldEl = document.getElementById("input-field")
 const addButtonEl = document.getElementById("add-button")
@@ -29,9 +28,12 @@ const shoppingListEl = document.getElementById("shopping-list")
 const multiOptionsEl = document.getElementById("multi-options")
 
 if (localStorage.getItem("group-ids") === null) {
-  const newGroupId = Date.now()
-  localStorage.setItem("group-ids", [newGroupId])
+  const newGroupId = String(Date.now())
+  localStorage.setItem("group-ids", JSON.stringify([newGroupId]))
 }
+
+groupId = JSON.parse(localStorage.getItem("group-ids"))[0]
+const shoppingListInDB = ref(database, groupId)
 
 inputFieldEl.addEventListener("keyup", function (e) {
   e.preventDefault()
