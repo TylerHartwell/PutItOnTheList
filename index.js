@@ -25,7 +25,6 @@ const inputFieldEl = document.getElementById("input-field")
 const addButtonEl = document.getElementById("add-button")
 const shoppingListEl = document.getElementById("shopping-list")
 const multiOptionsEl = document.getElementById("multi-options")
-const groupEl = document.getElementById("group")
 const groupsEl = document.getElementById("groups")
 
 if (localStorage.getItem("group-ids") === null) {
@@ -39,8 +38,29 @@ JSON.parse(localStorage.getItem("group-ids")).forEach((v, i) => {
   groupsEl.appendChild(option)
 })
 
-groupEl.value = JSON.parse(localStorage.getItem("group-ids"))[0]
-groupId = groupEl.value
+groupId = groupsEl.value
+
+groupsEl.onchange = () => {
+  const selectedGroupId = groupsEl.value
+  const selectedGroupIdIndex = groupsEl.selectedIndex
+  if (selectedGroupIdIndex !== 0) {
+    let previousfirstId
+    const newGroupsArray = JSON.parse(localStorage.getItem("group-ids")).map(
+      (v, i) => {
+        if (i === 0) {
+          previousfirstId = v
+          return selectedGroupId
+        }
+        if (i === selectedGroupIdIndex) {
+          return previousfirstId
+        }
+        return v
+      }
+    )
+    localStorage.setItem("group-ids", JSON.stringify(newGroupsArray))
+    location.reload()
+  }
+}
 
 const shoppingListInDB = ref(database, groupId)
 
