@@ -26,13 +26,14 @@ const addButtonEl = document.getElementById("add-button")
 const shoppingListEl = document.getElementById("shopping-list")
 const multiOptionsEl = document.getElementById("multi-options")
 const groupsEl = document.getElementById("groups")
+const groupIdInput = document.getElementById("group-id-input")
 
 if (localStorage.getItem("group-ids") === null) {
   const newGroupId = String(Date.now())
   localStorage.setItem("group-ids", JSON.stringify([newGroupId]))
 }
 
-JSON.parse(localStorage.getItem("group-ids")).forEach((v, i) => {
+Array.from(JSON.parse(localStorage.getItem("group-ids"))).forEach((v, i) => {
   const option = document.createElement("option")
   option.text = v
   groupsEl.appendChild(option)
@@ -45,24 +46,35 @@ groupsEl.onchange = () => {
   const selectedGroupIdIndex = groupsEl.selectedIndex
   if (selectedGroupIdIndex !== 0) {
     let previousfirstId
-    const newGroupsArray = JSON.parse(localStorage.getItem("group-ids")).map(
-      (v, i) => {
-        if (i === 0) {
-          previousfirstId = v
-          return selectedGroupId
-        }
-        if (i === selectedGroupIdIndex) {
-          return previousfirstId
-        }
-        return v
+    const newGroupsArray = Array.from(
+      JSON.parse(localStorage.getItem("group-ids"))
+    ).map((v, i) => {
+      if (i === 0) {
+        previousfirstId = v
+        return selectedGroupId
       }
-    )
+      if (i === selectedGroupIdIndex) {
+        return previousfirstId
+      }
+      return v
+    })
+
     localStorage.setItem("group-ids", JSON.stringify(newGroupsArray))
     location.reload()
   }
 }
 
 const shoppingListInDB = ref(database, groupId)
+
+groupIdInput.addEventListener("keyup", function (e) {
+  e.preventDefault()
+  if (e.key === "Enter") {
+    const newGroupsArray = JSON.parse(localStorage.getItem("group-ids"))
+    newGroupsArray.unshift(e.target.value)
+    localStorage.setItem("group-ids", JSON.stringify(newGroupsArray))
+    location.reload()
+  }
+})
 
 inputFieldEl.addEventListener("keyup", function (e) {
   e.preventDefault()
