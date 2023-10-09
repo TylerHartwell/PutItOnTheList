@@ -2,7 +2,6 @@
 //add undo function
 //name, save, and load list?
 //show history list by frequency and recency
-//delete all left, check all right, clear checked middle
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-app.js"
 import {
@@ -26,13 +25,23 @@ const inputFieldEl = document.getElementById("input-field")
 const addButtonEl = document.getElementById("add-button")
 const shoppingListEl = document.getElementById("shopping-list")
 const multiOptionsEl = document.getElementById("multi-options")
+const groupEl = document.getElementById("group")
+const groupsEl = document.getElementById("groups")
 
 if (localStorage.getItem("group-ids") === null) {
   const newGroupId = String(Date.now())
   localStorage.setItem("group-ids", JSON.stringify([newGroupId]))
 }
 
-groupId = JSON.parse(localStorage.getItem("group-ids"))[0]
+JSON.parse(localStorage.getItem("group-ids")).forEach((v, i) => {
+  const option = document.createElement("option")
+  option.text = v
+  groupsEl.appendChild(option)
+})
+
+groupEl.value = JSON.parse(localStorage.getItem("group-ids"))[0]
+groupId = groupEl.value
+
 const shoppingListInDB = ref(database, groupId)
 
 inputFieldEl.addEventListener("keyup", function (e) {
