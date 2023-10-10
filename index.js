@@ -19,7 +19,6 @@ const appSettings = {
 
 const app = initializeApp(appSettings)
 const database = getDatabase(app)
-let groupId
 
 const inputFieldEl = document.getElementById("input-field")
 const addButtonEl = document.getElementById("add-button")
@@ -39,8 +38,7 @@ Array.from(JSON.parse(localStorage.getItem("group-ids"))).forEach((v, i) => {
   groupsEl.appendChild(option)
 })
 
-groupId = groupsEl.value
-
+let groupId = groupsEl.value
 groupsEl.onchange = () => {
   const selectedGroupId = groupsEl.value
   const selectedGroupIdIndex = groupsEl.selectedIndex
@@ -48,14 +46,6 @@ groupsEl.onchange = () => {
     makeGroupIdFirst(selectedGroupId)
     location.reload()
   }
-}
-
-function makeGroupIdFirst(groupId) {
-  const newGroupsArray = JSON.parse(localStorage.getItem("group-ids")).filter(
-    id => id !== groupId
-  )
-  newGroupsArray.unshift(groupId)
-  localStorage.setItem("group-ids", JSON.stringify(newGroupsArray))
 }
 
 const shoppingListInDB = ref(database, groupId)
@@ -98,6 +88,14 @@ onValue(shoppingListInDB, function (snapshot) {
   }
 })
 
+function makeGroupIdFirst(groupId) {
+  const newGroupsArray = JSON.parse(localStorage.getItem("group-ids")).filter(
+    id => id !== groupId
+  )
+  newGroupsArray.unshift(groupId)
+  localStorage.setItem("group-ids", JSON.stringify(newGroupsArray))
+}
+
 function toggleHighlight(e) {
   if (e.target.classList.contains("mark")) {
     const li = e.target.parentElement
@@ -120,26 +118,23 @@ function deleteItem(e) {
   }
 }
 
-function markAllItems(e) {
-  if (e.target.classList.contains("mark-all")) {
+function changeMarks(e, btnClass, bool) {
+  if (e.target.classList.contains(btnClass)) {
     Array.from(shoppingListEl.children).forEach(li => {
-      if (li.dataset.itemHighlighted !== "true") {
+      if (li.dataset.itemHighlighted !== `${bool}`) {
         const itemID = li.id
-        set(ref(database, `${groupId}/${itemID}/itemHighlighted`), true)
+        set(ref(database, `${groupId}/${itemID}/itemHighlighted`), bool)
       }
     })
   }
 }
 
+function markAllItems(e) {
+  changeMarks(e, "mark-all", true)
+}
+
 function unmarkAllItems(e) {
-  if (e.target.classList.contains("unmark-all")) {
-    Array.from(shoppingListEl.children).forEach(li => {
-      if (li.dataset.itemHighlighted !== "false") {
-        const itemID = li.id
-        set(ref(database, `${groupId}/${itemID}/itemHighlighted`), false)
-      }
-    })
-  }
+  changeMarks(e, "unmark-all", false)
 }
 
 function deleteAllItems(e) {
@@ -218,14 +213,14 @@ function clearInputFieldEl() {
 function addInputToList(e) {
   e.preventDefault()
   let inputValue = inputFieldEl.value
-  if (inputValue !== "" && inputisUnique(inputValue)) {
+  if (inputValue !== "" && inputIsUnique(inputValue)) {
     let item = { itemName: inputValue, itemHighlighted: false }
     push(shoppingListInDB, item)
   }
   clearInputFieldEl()
 }
 
-function inputisUnique(inputValue) {
+function inputIsUnique(inputValue) {
   let isUnique = true
   Array.from(document.querySelectorAll(".item-text")).forEach(el => {
     if (el.textContent === inputValue) isUnique = false
