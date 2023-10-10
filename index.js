@@ -228,9 +228,17 @@ function clearInputFieldEl() {
 function addInputToList(e) {
   e.preventDefault()
   let inputValue = inputFieldEl.value
-  if (inputValue !== "") {
+  if (inputValue !== "" && inputisUnique(inputValue)) {
     let item = { itemName: inputValue, itemHighlighted: false }
     push(shoppingListInDB, item)
-    clearInputFieldEl()
   }
+  clearInputFieldEl()
+}
+
+function inputisUnique(inputValue) {
+  let isUnique = true
+  Array.from(document.querySelectorAll(".item-text")).forEach(el => {
+    if (el.textContent === inputValue) isUnique = false
+  })
+  return isUnique
 }
