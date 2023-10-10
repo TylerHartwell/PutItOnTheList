@@ -70,8 +70,10 @@ groupIdInput.addEventListener("keyup", function (e) {
   e.preventDefault()
   if (e.key === "Enter") {
     const newGroupsArray = JSON.parse(localStorage.getItem("group-ids"))
-    newGroupsArray.unshift(e.target.value)
-    localStorage.setItem("group-ids", JSON.stringify(newGroupsArray))
+    if (!newGroupsArray.includes(e.target.value)) {
+      newGroupsArray.unshift(e.target.value)
+      localStorage.setItem("group-ids", JSON.stringify(newGroupsArray))
+    }
     location.reload()
   }
 })
