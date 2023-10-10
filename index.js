@@ -45,23 +45,17 @@ groupsEl.onchange = () => {
   const selectedGroupId = groupsEl.value
   const selectedGroupIdIndex = groupsEl.selectedIndex
   if (selectedGroupIdIndex !== 0) {
-    let previousfirstId
-    const newGroupsArray = Array.from(
-      JSON.parse(localStorage.getItem("group-ids"))
-    ).map((v, i) => {
-      if (i === 0) {
-        previousfirstId = v
-        return selectedGroupId
-      }
-      if (i === selectedGroupIdIndex) {
-        return previousfirstId
-      }
-      return v
-    })
-
-    localStorage.setItem("group-ids", JSON.stringify(newGroupsArray))
+    makeGroupIdFirst(selectedGroupId)
     location.reload()
   }
+}
+
+function makeGroupIdFirst(groupId) {
+  const newGroupsArray = JSON.parse(localStorage.getItem("group-ids")).filter(
+    id => id !== groupId
+  )
+  newGroupsArray.unshift(groupId)
+  localStorage.setItem("group-ids", JSON.stringify(newGroupsArray))
 }
 
 const shoppingListInDB = ref(database, groupId)
@@ -69,11 +63,7 @@ const shoppingListInDB = ref(database, groupId)
 groupIdInput.addEventListener("keyup", function (e) {
   e.preventDefault()
   if (e.key === "Enter") {
-    const newGroupsArray = JSON.parse(localStorage.getItem("group-ids"))
-    if (!newGroupsArray.includes(e.target.value)) {
-      newGroupsArray.unshift(e.target.value)
-      localStorage.setItem("group-ids", JSON.stringify(newGroupsArray))
-    }
+    makeGroupIdFirst(e.target.value)
     location.reload()
   }
 })
