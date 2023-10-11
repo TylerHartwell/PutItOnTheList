@@ -20,7 +20,7 @@ img {
   margin: 0 auto;
 }
 
-#input-field {
+.item-entry {
   color: #432000;
   background-color: #dce1eb;
   border: 0;
@@ -32,7 +32,7 @@ img {
   margin: 10px 0;
 }
 
-#add-button {
+.add-item-btn {
   color: #fdfdfd;
   background-color: #ac485a;
   border: 0;
@@ -43,7 +43,7 @@ img {
   font-family: "Rubik", sans-serif;
 }
 
-#add-button:active {
+.add-item-btn:active {
   background-color: green;
 }
 
@@ -117,7 +117,7 @@ ul li {
 }
 
 @media (hover: hover) and (pointer: fine) {
-  #add-button:hover {
+  .add-item-btn:hover {
     background-color: green;
   }
 

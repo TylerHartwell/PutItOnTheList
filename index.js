@@ -20,12 +20,12 @@ const appSettings = {
 const app = initializeApp(appSettings)
 const database = getDatabase(app)
 
-const inputFieldEl = document.getElementById("input-field")
-const addButtonEl = document.getElementById("add-button")
-const shoppingListEl = document.getElementById("shopping-list")
-const multiOptionsEl = document.getElementById("multi-options")
-const groupsEl = document.getElementById("groups")
-const groupIdInput = document.getElementById("group-id-input")
+const itemEntryEl = document.querySelector(".item-entry")
+const addItemBtnEl = document.querySelector(".add-item-btn")
+const itemListEl = document.querySelector(".item-list")
+const multiItemOptionsEl = document.querySelector(".multi-item-options")
+const groupSelectorEl = document.querySelector(".group-selector")
+const groupEntryEl = document.querySelector(".group-entry")
 
 if (localStorage.getItem("group-ids") === null) {
   const newGroupId = String(Date.now())
@@ -35,13 +35,13 @@ if (localStorage.getItem("group-ids") === null) {
 Array.from(JSON.parse(localStorage.getItem("group-ids"))).forEach((v, i) => {
   const option = document.createElement("option")
   option.text = v
-  groupsEl.appendChild(option)
+  groupSelectorEl.appendChild(option)
 })
 
-let groupId = groupsEl.value
-groupsEl.onchange = () => {
-  const selectedGroupId = groupsEl.value
-  const selectedGroupIdIndex = groupsEl.selectedIndex
+let groupId = groupSelectorEl.value
+groupSelectorEl.onchange = () => {
+  const selectedGroupId = groupSelectorEl.value
+  const selectedGroupIdIndex = groupSelectorEl.selectedIndex
   if (selectedGroupIdIndex !== 0) {
     makeGroupIdFirst(selectedGroupId)
     location.reload()
@@ -50,7 +50,7 @@ groupsEl.onchange = () => {
 
 const shoppingListInDB = ref(database, groupId)
 
-groupIdInput.addEventListener("keyup", function (e) {
+groupEntryEl.addEventListener("keyup", function (e) {
   e.preventDefault()
   if (e.key === "Enter") {
     makeGroupIdFirst(e.target.value)
@@ -58,20 +58,20 @@ groupIdInput.addEventListener("keyup", function (e) {
   }
 })
 
-inputFieldEl.addEventListener("keyup", function (e) {
+itemEntryEl.addEventListener("keyup", function (e) {
   e.preventDefault()
   if (e.key === "Enter") {
-    addButtonEl.click()
+    addItemBtnEl.click()
   }
 })
 
-addButtonEl.addEventListener("click", addInputToList)
-shoppingListEl.addEventListener("click", deleteItem)
-shoppingListEl.addEventListener("click", editItem)
-shoppingListEl.addEventListener("click", toggleHighlight)
-multiOptionsEl.addEventListener("click", deleteAllItems)
-multiOptionsEl.addEventListener("click", markAllItems)
-multiOptionsEl.addEventListener("click", unmarkAllItems)
+addItemBtnEl.addEventListener("click", addInputToList)
+itemListEl.addEventListener("click", deleteItem)
+itemListEl.addEventListener("click", editItem)
+itemListEl.addEventListener("click", toggleHighlight)
+multiItemOptionsEl.addEventListener("click", deleteAllItems)
+multiItemOptionsEl.addEventListener("click", markAllItems)
+multiItemOptionsEl.addEventListener("click", unmarkAllItems)
 
 onValue(shoppingListInDB, function (snapshot) {
   if (snapshot.exists()) {
@@ -81,10 +81,10 @@ onValue(shoppingListInDB, function (snapshot) {
       let currentItem = itemsArray[i]
       appendItemToShoppingListEl(currentItem)
     }
-    multiOptionsEl.hidden = false
+    multiItemOptionsEl.hidden = false
   } else {
-    shoppingListEl.innerHTML = "No items here...yet"
-    multiOptionsEl.hidden = true
+    itemListEl.innerHTML = "No items here...yet"
+    multiItemOptionsEl.hidden = true
   }
 })
 
@@ -120,7 +120,7 @@ function deleteItem(e) {
 
 function changeMarks(e, btnClass, bool) {
   if (e.target.classList.contains(btnClass)) {
-    Array.from(shoppingListEl.children).forEach(li => {
+    Array.from(itemListEl.children).forEach(li => {
       if (li.dataset.itemHighlighted !== `${bool}`) {
         const itemID = li.id
         set(ref(database, `${groupId}/${itemID}/itemHighlighted`), bool)
@@ -140,8 +140,8 @@ function unmarkAllItems(e) {
 function deleteAllItems(e) {
   if (e.target.classList.contains("delete-all")) {
     if (confirm("Delete all items from current list?") === true) {
-      while (shoppingListEl.firstChild.id) {
-        const itemID = shoppingListEl.firstChild.id
+      while (itemListEl.firstChild.id) {
+        const itemID = itemListEl.firstChild.id
         let exactLocationOfItemInDB = ref(database, `${groupId}/${itemID}`)
         remove(exactLocationOfItemInDB)
       }
@@ -178,7 +178,7 @@ function appendItemToShoppingListEl(item) {
 
   itemText.setAttribute("contenteditable", "plaintext-only")
 
-  shoppingListEl.append(li)
+  itemListEl.append(li)
   li.appendChild(deleteBtn)
   li.appendChild(itemText)
   li.appendChild(markBtn)
@@ -203,16 +203,16 @@ function applyHighlightStatus(item, li) {
 }
 
 function clearShoppingListEl() {
-  shoppingListEl.innerHTML = ""
+  itemListEl.innerHTML = ""
 }
 
 function clearInputFieldEl() {
-  inputFieldEl.value = ""
+  itemEntryEl.value = ""
 }
 
 function addInputToList(e) {
   e.preventDefault()
-  let inputValue = inputFieldEl.value
+  let inputValue = itemEntryEl.value
   if (inputValue !== "" && inputIsUnique(inputValue)) {
     let item = { itemName: inputValue, itemHighlighted: false }
     push(shoppingListInDB, item)

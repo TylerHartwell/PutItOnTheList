@@ -33,29 +33,29 @@
     <div class="container">
       <input
         type="text"
-        id="group-id-input"
+        class="group-entry"
         placeholder="Enter Group Number"
         autocomplete="off"
         enterkeyhint="done"
       />
-      <select id="groups"></select>
+      <select class="group-selector"></select>
       <img src="assets/cat.png" />
       <input
         type="text"
-        id="input-field"
+        class="item-entry"
         placeholder="Enter Item"
         autocomplete="off"
         enterkeyhint="done"
       />
-      <button id="add-button">Put It On The List</button>
-      <ul id="shopping-list">
+      <button class="add-item-btn">Put It On The List</button>
+      <ul class="item-list">
         No items here...yet
       </ul>
-      <div id="multi-options" hidden>
+      <div class="multi-item-options" hidden>
         <button class="delete-all">Delete All</button>
         <button class="unmark-all">Unmark All</button>
         <button class="mark-all">Mark All</button>
-        <button class="checkout-marked">Checkout Marked</button>
+        <!-- <button class="checkout-marked">Checkout Marked</button> -->
       </div>
     </div>
     <script src="index.js" type="module"></script>
