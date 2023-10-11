@@ -11,7 +11,8 @@ body {
 .container {
   display: flex;
   flex-direction: column;
-  max-width: 320px;
+  max-width: 450px;
+  min-width: 250px;
   margin: 30px auto;
 }
 
@@ -31,10 +32,13 @@ img {
   font-family: "Rubik", sans-serif;
   margin: 10px 0;
 }
+.item-entry:focus {
+  outline-color: gold;
+}
 
 .add-item-btn {
   color: #fdfdfd;
-  background-color: #ac485a;
+  background-color: #252525;
   border: 0;
   padding: 15px;
   border-radius: 8px;
@@ -44,7 +48,8 @@ img {
 }
 
 .add-item-btn:active {
-  background-color: green;
+  background-color: gold;
+  color: black;
 }
 
 ul {
@@ -64,7 +69,7 @@ ul li {
   justify-content: left;
   background-color: #fffdf8;
   max-width: 100%;
-  padding: 10px;
+  padding: 0px 10px;
   border-radius: 8px;
   flex-grow: 1;
   overflow: hidden;
@@ -88,13 +93,13 @@ ul li {
 }
 
 .delete {
-  margin-right: 10px;
   margin-left: -10px;
   order: -1;
-  color: red;
+  color: #fc7371;
 }
 
 .item-text {
+  padding: 5px 5px;
   border: none;
   overflow: auto;
   resize: none;
@@ -102,6 +107,7 @@ ul li {
   border: 0;
   font-size: 20px;
   font-family: "Rubik", sans-serif;
+  flex: 1;
 }
 
 .mark {
@@ -116,12 +122,93 @@ ul li {
   scale: 1.5;
 }
 
+.group-selector,
+.group-entry {
+  flex: 1;
+  background-color: #dce1eb;
+  border: 0;
+  padding: 5px;
+  border-radius: 8px;
+  font-family: "Rubik", sans-serif;
+}
+
+.item-entry::placeholder,
+.group-entry::placeholder,
+.group-selector {
+  color: rgb(87, 87, 87);
+}
+
+.group-top,
+.group-bottom {
+  width: 100%;
+  display: flex;
+  margin: 2px auto;
+  align-items: center;
+}
+
+.copy,
+.leave,
+.join {
+  width: auto;
+  height: 25px;
+  border: 1px solid transparent;
+  color: #fdfdfd;
+  background-color: #252525;
+  margin: 2px;
+  border-radius: 8px;
+  text-align: center;
+  font-family: "Rubik", sans-serif;
+}
+
+.group-label {
+  font-size: 13.33px;
+  margin-left: 2px;
+  margin-right: 2px;
+}
+
+.multi-item-options {
+  display: flex;
+  margin-top: 10px;
+}
+
+.delete-all,
+.unmark-all,
+.mark-all {
+  border: 1px solid transparent;
+  color: #fdfdfd;
+  background-color: #252525;
+  margin: 2px;
+  border-radius: 8px;
+  text-align: center;
+  font-family: "Rubik", sans-serif;
+  font-weight: bold;
+}
+
+.delete-all {
+  margin-right: auto;
+}
+
+.delete-all:hover {
+  background-color: #fc7371;
+  color: black;
+}
+
+.mark-all:hover {
+  background-color: green;
+}
+
+.unmark-all:hover {
+  background-color: #fdfdfd;
+  color: black;
+}
+
 @media (hover: hover) and (pointer: fine) {
   .add-item-btn:hover {
-    background-color: green;
+    background-color: gold;
+    color: black;
   }
 
   ul li:hover {
-    background-color: #ffecc7;
+    background-color: gold;
   }
 }
