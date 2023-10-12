@@ -10,7 +10,9 @@ import {
   push,
   onValue,
   remove,
-  set
+  set,
+  get,
+  child
 } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-database.js"
 
 const appSettings = {
@@ -20,8 +22,12 @@ const appSettings = {
 const app = initializeApp(appSettings)
 const database = getDatabase(app)
 
+const bodyEl = document.querySelector("body")
+const leaveBtn = document.querySelector(".leave")
+const joinBtn = document.querySelector(".join")
+const copyBtn = document.querySelector(".copy")
 const itemEntryEl = document.querySelector(".item-entry")
-const addItemBtnEl = document.querySelector(".add-item-btn")
+const addItemBtn = document.querySelector(".add-item-btn")
 const itemListEl = document.querySelector(".item-list")
 const multiItemOptionsEl = document.querySelector(".multi-item-options")
 const groupSelectorEl = document.querySelector(".group-selector")
@@ -50,28 +56,70 @@ groupSelectorEl.onchange = () => {
 
 const shoppingListInDB = ref(database, groupId)
 
+function checkExistingGroup(id) {
+  const dbRef = ref(getDatabase())
+  return get(child(dbRef, id))
+    .then(snapshot => {
+      return snapshot.exists()
+    })
+    .catch(error => {
+      console.error(error)
+      return false
+    })
+}
+
 groupEntryEl.addEventListener("keyup", function (e) {
   e.preventDefault()
   if (e.key === "Enter") {
-    makeGroupIdFirst(e.target.value)
-    location.reload()
+    joinGroup()
   }
 })
 
 itemEntryEl.addEventListener("keyup", function (e) {
   e.preventDefault()
   if (e.key === "Enter") {
-    addItemBtnEl.click()
+    addItemBtn.click()
   }
 })
 
-addItemBtnEl.addEventListener("click", addInputToList)
-itemListEl.addEventListener("click", deleteItem)
-itemListEl.addEventListener("click", editItem)
-itemListEl.addEventListener("click", toggleHighlight)
-multiItemOptionsEl.addEventListener("click", deleteAllItems)
-multiItemOptionsEl.addEventListener("click", markAllItems)
-multiItemOptionsEl.addEventListener("click", unmarkAllItems)
+bodyEl.addEventListener("click", e => {
+  if (e.target.matches(".leave")) leaveGroup()
+  if (e.target.matches(".join")) joinGroup()
+  if (e.target.matches(".copy")) copyGroup()
+  if (e.target.matches(".add-item-btn")) addInputToList(e)
+  if (e.target.matches(".delete")) deleteItem(e)
+  if (e.target.matches(".item-text")) editItem(e)
+  if (e.target.matches(".mark")) toggleHighlight(e)
+  if (e.target.matches(".delete-all")) deleteAllItems()
+  if (e.target.matches(".mark-all")) markAllItems(true)
+  if (e.target.matches(".unmark-all")) markAllItems(false)
+})
+
+function leaveGroup() {
+  const newGroupsArray = JSON.parse(localStorage.getItem("group-ids")).filter(
+    id => id !== groupEntryEl.value
+  )
+  localStorage.setItem("group-ids", JSON.stringify(newGroupsArray))
+  location.reload()
+}
+function joinGroup() {
+  checkExistingGroup(groupEntryEl.value)
+    .then(isExisting => {
+      if (isExisting) {
+        makeGroupIdFirst(groupEntryEl.value)
+        location.reload()
+      } else {
+        groupEntryEl.value = ""
+      }
+    })
+    .catch(error => {
+      console.error(error)
+    })
+}
+function copyGroup() {
+  navigator.clipboard.writeText(groupSelectorEl.value)
+  console.log("c")
+}
 
 onValue(shoppingListInDB, function (snapshot) {
   if (snapshot.exists()) {
@@ -97,54 +145,35 @@ function makeGroupIdFirst(groupId) {
 }
 
 function toggleHighlight(e) {
-  if (e.target.classList.contains("mark")) {
-    const li = e.target.parentElement
-    if (li.classList.contains("item")) {
-      const itemID = li.id
-      const itemHighlighted = li.dataset.itemHighlighted === "true"
-      set(
-        ref(database, `${groupId}/${itemID}/itemHighlighted`),
-        !itemHighlighted
-      )
-    }
+  const li = e.target.parentElement
+  if (li.classList.contains("item")) {
+    const itemID = li.id
+    const itemHighlighted = li.dataset.itemHighlighted === "true"
+    set(ref(database, `${groupId}/${itemID}/itemHighlighted`), !itemHighlighted)
   }
 }
 
 function deleteItem(e) {
-  if (e.target.classList.contains("delete")) {
-    const itemID = e.target.parentElement.id
-    let exactLocationOfItemInDB = ref(database, `${groupId}/${itemID}`)
-    remove(exactLocationOfItemInDB)
-  }
+  const itemID = e.target.parentElement.id
+  let exactLocationOfItemInDB = ref(database, `${groupId}/${itemID}`)
+  remove(exactLocationOfItemInDB)
 }
 
-function changeMarks(e, btnClass, bool) {
-  if (e.target.classList.contains(btnClass)) {
-    Array.from(itemListEl.children).forEach(li => {
-      if (li.dataset.itemHighlighted !== `${bool}`) {
-        const itemID = li.id
-        set(ref(database, `${groupId}/${itemID}/itemHighlighted`), bool)
-      }
-    })
-  }
-}
-
-function markAllItems(e) {
-  changeMarks(e, "mark-all", true)
-}
-
-function unmarkAllItems(e) {
-  changeMarks(e, "unmark-all", false)
+function markAllItems(bool) {
+  Array.from(itemListEl.children).forEach(li => {
+    if (li.dataset.itemHighlighted !== `${bool}`) {
+      const itemID = li.id
+      set(ref(database, `${groupId}/${itemID}/itemHighlighted`), bool)
+    }
+  })
 }
 
 function deleteAllItems(e) {
-  if (e.target.classList.contains("delete-all")) {
-    if (confirm("Delete all items from current list?") === true) {
-      while (itemListEl.firstChild.id) {
-        const itemID = itemListEl.firstChild.id
-        let exactLocationOfItemInDB = ref(database, `${groupId}/${itemID}`)
-        remove(exactLocationOfItemInDB)
-      }
+  if (confirm("Delete all items from current list?") === true) {
+    while (itemListEl.firstChild.id) {
+      const itemID = itemListEl.firstChild.id
+      let exactLocationOfItemInDB = ref(database, `${groupId}/${itemID}`)
+      remove(exactLocationOfItemInDB)
     }
   }
 }
@@ -167,10 +196,8 @@ function blurOnEnterPress(e) {
 }
 
 function editItem(e) {
-  if (e.target.classList.contains("item-text")) {
-    e.target.addEventListener("blur", saveEditedItem)
-    e.target.addEventListener("keydown", blurOnEnterPress)
-  }
+  e.target.addEventListener("blur", saveEditedItem)
+  e.target.addEventListener("keydown", blurOnEnterPress)
 }
 
 function appendItemToShoppingListEl(item) {
