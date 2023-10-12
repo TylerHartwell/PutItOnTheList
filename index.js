@@ -158,9 +158,18 @@ function saveEditedItem(e) {
   e.target.removeEventListener("blur", saveEditedItem)
 }
 
+function blurOnEnterPress(e) {
+  if (e.key === "Enter") {
+    e.preventDefault()
+    e.target.blur()
+    e.target.removeEventListener("keydown", blurOnEnterPress)
+  }
+}
+
 function editItem(e) {
   if (e.target.classList.contains("item-text")) {
     e.target.addEventListener("blur", saveEditedItem)
+    e.target.addEventListener("keydown", blurOnEnterPress)
   }
 }
 

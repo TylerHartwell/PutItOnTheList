@@ -24,7 +24,7 @@ img {
 .item-entry {
   color: #432000;
   background-color: #dce1eb;
-  border: 0;
+  border: none;
   padding: 15px;
   border-radius: 8px;
   font-size: 20px;
