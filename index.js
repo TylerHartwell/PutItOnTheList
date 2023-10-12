@@ -33,9 +33,13 @@ const multiItemOptionsEl = document.querySelector(".multi-item-options")
 const groupSelectorEl = document.querySelector(".group-selector")
 const groupEntryEl = document.querySelector(".group-entry")
 
-if (localStorage.getItem("group-ids") === null) {
-  const newGroupId = String(Date.now())
-  localStorage.setItem("group-ids", JSON.stringify([newGroupId]))
+assureNonEmptyLocalStorage()
+
+function assureNonEmptyLocalStorage() {
+  if (localStorage.getItem("group-ids") === null || []) {
+    const newGroupId = String(Date.now())
+    localStorage.setItem("group-ids", JSON.stringify([newGroupId]))
+  }
 }
 
 Array.from(JSON.parse(localStorage.getItem("group-ids"))).forEach((v, i) => {
@@ -100,6 +104,7 @@ function leaveGroup() {
     id => id !== groupEntryEl.value
   )
   localStorage.setItem("group-ids", JSON.stringify(newGroupsArray))
+  assureNonEmptyLocalStorage()
   location.reload()
 }
 function joinGroup() {
