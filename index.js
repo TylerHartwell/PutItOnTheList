@@ -46,10 +46,10 @@ onValue(shoppingListInDB, function (snapshot) {
       let currentItem = itemsArray[i]
       appendItemToShoppingListEl(currentItem)
     }
-    multiItemOptionsEl.hidden = false
+    multiItemOptionsEl.classList.remove("hidden")
   } else {
     itemListEl.innerHTML = "No items here...yet"
-    multiItemOptionsEl.hidden = true
+    multiItemOptionsEl.classList.add("hidden")
   }
 })
 
@@ -110,12 +110,14 @@ function checkExistingGroup(id) {
 }
 
 function leaveGroup() {
-  const newGroupsArray = JSON.parse(localStorage.getItem("group-ids")).filter(
-    id => id !== groupEntryEl.value
-  )
-  localStorage.setItem("group-ids", JSON.stringify(newGroupsArray))
-  assureNonEmptyLocalStorage()
-  location.reload()
+  if (groupEntryEl.value) {
+    const newGroupsArray = JSON.parse(localStorage.getItem("group-ids")).filter(
+      id => id !== groupEntryEl.value
+    )
+    localStorage.setItem("group-ids", JSON.stringify(newGroupsArray))
+    assureNonEmptyLocalStorage()
+    location.reload()
+  }
 }
 
 function joinGroup() {
@@ -135,7 +137,6 @@ function joinGroup() {
 
 function copyGroup() {
   navigator.clipboard.writeText(groupSelectorEl.value)
-  console.log("c")
 }
 
 function assureNonEmptyLocalStorage() {

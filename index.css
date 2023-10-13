@@ -171,6 +171,10 @@ ul li {
   margin-top: 10px;
 }
 
+.hidden {
+  display: none;
+}
+
 .delete-all,
 .unmark-all,
 .mark-all {
