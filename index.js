@@ -23,9 +23,6 @@ const app = initializeApp(appSettings)
 const database = getDatabase(app)
 
 const bodyEl = document.querySelector("body")
-const leaveBtn = document.querySelector(".leave")
-const joinBtn = document.querySelector(".join")
-const copyBtn = document.querySelector(".copy")
 const itemEntryEl = document.querySelector(".item-entry")
 const addItemBtn = document.querySelector(".add-item-btn")
 const itemListEl = document.querySelector(".item-list")
@@ -35,23 +32,27 @@ const groupEntryEl = document.querySelector(".group-entry")
 
 assureNonEmptyLocalStorage()
 
-function assureNonEmptyLocalStorage() {
-  if (
-    localStorage.getItem("group-ids") === null ||
-    localStorage.getItem("group-ids").length === 0
-  ) {
-    const newGroupId = String(Date.now())
-    localStorage.setItem("group-ids", JSON.stringify([newGroupId]))
-  }
-}
-
-Array.from(JSON.parse(localStorage.getItem("group-ids"))).forEach((v, i) => {
-  const option = document.createElement("option")
-  option.text = v
-  groupSelectorEl.appendChild(option)
-})
+createGroupSelection()
 
 let groupId = groupSelectorEl.value
+
+const shoppingListInDB = ref(database, groupId)
+
+onValue(shoppingListInDB, function (snapshot) {
+  if (snapshot.exists()) {
+    let itemsArray = Object.entries(snapshot.val())
+    clearShoppingListEl()
+    for (let i = 0; i < itemsArray.length; i++) {
+      let currentItem = itemsArray[i]
+      appendItemToShoppingListEl(currentItem)
+    }
+    multiItemOptionsEl.hidden = false
+  } else {
+    itemListEl.innerHTML = "No items here...yet"
+    multiItemOptionsEl.hidden = true
+  }
+})
+
 groupSelectorEl.onchange = () => {
   const selectedGroupId = groupSelectorEl.value
   const selectedGroupIdIndex = groupSelectorEl.selectedIndex
@@ -59,20 +60,6 @@ groupSelectorEl.onchange = () => {
     makeGroupIdFirst(selectedGroupId)
     location.reload()
   }
-}
-
-const shoppingListInDB = ref(database, groupId)
-
-function checkExistingGroup(id) {
-  const dbRef = ref(getDatabase())
-  return get(child(dbRef, id))
-    .then(snapshot => {
-      return snapshot.exists()
-    })
-    .catch(error => {
-      console.error(error)
-      return false
-    })
 }
 
 groupEntryEl.addEventListener("keyup", function (e) {
@@ -102,6 +89,26 @@ bodyEl.addEventListener("click", e => {
   if (e.target.matches(".unmark-all")) markAllItems(false)
 })
 
+function createGroupSelection() {
+  Array.from(JSON.parse(localStorage.getItem("group-ids"))).forEach(v => {
+    const option = document.createElement("option")
+    option.text = v
+    groupSelectorEl.appendChild(option)
+  })
+}
+
+function checkExistingGroup(id) {
+  const dbRef = ref(getDatabase())
+  return get(child(dbRef, id))
+    .then(snapshot => {
+      return snapshot.exists()
+    })
+    .catch(error => {
+      console.error(error)
+      return false
+    })
+}
+
 function leaveGroup() {
   const newGroupsArray = JSON.parse(localStorage.getItem("group-ids")).filter(
     id => id !== groupEntryEl.value
@@ -110,6 +117,7 @@ function leaveGroup() {
   assureNonEmptyLocalStorage()
   location.reload()
 }
+
 function joinGroup() {
   checkExistingGroup(groupEntryEl.value)
     .then(isExisting => {
@@ -124,25 +132,21 @@ function joinGroup() {
       console.error(error)
     })
 }
+
 function copyGroup() {
   navigator.clipboard.writeText(groupSelectorEl.value)
   console.log("c")
 }
 
-onValue(shoppingListInDB, function (snapshot) {
-  if (snapshot.exists()) {
-    let itemsArray = Object.entries(snapshot.val())
-    clearShoppingListEl()
-    for (let i = 0; i < itemsArray.length; i++) {
-      let currentItem = itemsArray[i]
-      appendItemToShoppingListEl(currentItem)
-    }
-    multiItemOptionsEl.hidden = false
-  } else {
-    itemListEl.innerHTML = "No items here...yet"
-    multiItemOptionsEl.hidden = true
+function assureNonEmptyLocalStorage() {
+  if (
+    localStorage.getItem("group-ids") === null ||
+    Array.from(JSON.parse(localStorage.getItem("group-ids"))).length < 1
+  ) {
+    const newGroupId = String(Date.now())
+    localStorage.setItem("group-ids", JSON.stringify([newGroupId]))
   }
-})
+}
 
 function makeGroupIdFirst(groupId) {
   const newGroupsArray = JSON.parse(localStorage.getItem("group-ids")).filter(
