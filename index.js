@@ -36,7 +36,10 @@ const groupEntryEl = document.querySelector(".group-entry")
 assureNonEmptyLocalStorage()
 
 function assureNonEmptyLocalStorage() {
-  if (localStorage.getItem("group-ids") === null || []) {
+  if (
+    localStorage.getItem("group-ids") === null ||
+    localStorage.getItem("group-ids").length === 0
+  ) {
     const newGroupId = String(Date.now())
     localStorage.setItem("group-ids", JSON.stringify([newGroupId]))
   }
