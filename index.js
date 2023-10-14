@@ -245,9 +245,9 @@ function makeNewEl(tag = "div", classes = "newEl", text) {
 
 function applyHighlightStatus(item, li) {
   if (item[1].itemHighlighted) {
-    li.style.borderColor = "#00FF00"
+    li.classList.add("highlight")
   } else {
-    li.style.borderColor = "transparent"
+    li.classList.remove("highlight")
   }
 }
 
