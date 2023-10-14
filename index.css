@@ -1,3 +1,7 @@
+* {
+  box-sizing: border-box;
+}
+
 html,
 body {
   margin: 0;
@@ -6,34 +10,35 @@ body {
   background-color: #eef0f4;
   color: #432000;
   user-select: none;
+  box-sizing: border-box;
 }
 
 .container {
-  display: flex;
-  flex-direction: column;
   width: 90%;
-  /* min-width: 250px; */
   margin: 30px auto;
 }
 
 /* ///////////////////group actions/////////////////// */
+
 .group-top,
 .group-bottom {
-  width: 100%;
   display: flex;
   margin: 2px auto;
   align-items: center;
+  justify-content: center;
+  width: 100%;
 }
 
 .group-selector,
 .group-entry {
-  flex: 1 0 auto;
+  flex: 1 1 0;
   background-color: #dce1eb;
   border: 2px solid transparent;
   padding: 5px;
   border-radius: 8px;
   font-family: "Rubik", sans-serif;
   outline: none;
+  overflow: auto;
 }
 
 .group-entry:focus {
@@ -71,9 +76,11 @@ body {
 img {
   width: 150px;
   margin: 0 auto;
+  display: block;
 }
 
 /* ///////////////////item entry/////////////////// */
+
 .item-entry {
   color: #432000;
   background-color: #dce1eb;
@@ -84,6 +91,7 @@ img {
   text-align: center;
   font-family: "Rubik", sans-serif;
   margin: 10px 0;
+  width: 100%;
 }
 .item-entry:focus {
   box-shadow: 0 0 5px #252525;
@@ -92,8 +100,6 @@ img {
 }
 
 .add-item-btn {
-  color: #fdfdfd;
-  background-color: #252525;
   background-color: #ffd9009a;
   color: black;
   border: 0;
@@ -102,6 +108,7 @@ img {
   font-size: 20px;
   text-align: center;
   font-family: "Rubik", sans-serif;
+  width: 100%;
 }
 
 .add-item-btn:active {
@@ -110,6 +117,7 @@ img {
 }
 
 /* ///////////////////list/////////////////// */
+
 ul {
   list-style-type: none;
   padding: 0;
@@ -126,7 +134,6 @@ li {
   align-items: center;
   justify-content: left;
   background-color: #fffdf8;
-  max-width: 100%;
   padding: 0px 10px;
   border-radius: 8px;
   flex-grow: 1;
@@ -193,6 +200,7 @@ li:has(.item-text:focus) {
 }
 
 /* ///////////////////multi options///////////////////*/
+
 .multi-item-options {
   display: flex;
   margin-top: 10px;
@@ -220,6 +228,7 @@ li:has(.item-text:focus) {
 }
 
 /* ///////////////////hover devices only/////////////////// */
+
 @media (any-hover: hover) and (pointer: fine) {
   .copy:hover,
   .leave:hover,
