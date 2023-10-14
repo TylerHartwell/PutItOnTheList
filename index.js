@@ -121,18 +121,20 @@ function leaveGroup() {
 }
 
 function joinGroup() {
-  checkExistingGroup(groupEntryEl.value)
-    .then(isExisting => {
-      if (isExisting) {
-        makeGroupIdFirst(groupEntryEl.value)
-        location.reload()
-      } else {
-        groupEntryEl.value = ""
-      }
-    })
-    .catch(error => {
-      console.error(error)
-    })
+  if (groupEntryEl.value) {
+    checkExistingGroup(groupEntryEl.value)
+      .then(isExisting => {
+        if (isExisting) {
+          makeGroupIdFirst(groupEntryEl.value)
+          location.reload()
+        } else {
+          groupEntryEl.value = ""
+        }
+      })
+      .catch(error => {
+        console.error(error)
+      })
+  }
 }
 
 function copyGroup() {
