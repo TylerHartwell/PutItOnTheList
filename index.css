@@ -65,6 +65,13 @@ body {
   font-family: "Rubik", sans-serif;
 }
 
+.copy:active,
+.leave:active,
+.join:active {
+  color: #252525;
+  background-color: #fdfdfd;
+}
+
 .group-label {
   font-size: 13.33px;
   margin-left: 2px;
@@ -203,7 +210,7 @@ li:has(.item-text:focus) {
 
 .multi-item-options {
   display: flex;
-  margin-top: 10px;
+  margin-top: 25px;
 }
 
 .hidden {
@@ -213,7 +220,7 @@ li:has(.item-text:focus) {
 .delete-all,
 .unmark-all,
 .mark-all {
-  border: 1px solid transparent;
+  border: 4px double transparent;
   color: #fdfdfd;
   background-color: #252525;
   margin: 2px;
@@ -225,6 +232,30 @@ li:has(.item-text:focus) {
 
 .delete-all {
   margin-right: auto;
+  border-color: #fc7371;
+  color: #fc7371;
+}
+.delete-all:active {
+  background-color: #fc7371;
+  color: black;
+}
+
+.unmark-all {
+  border-color: #fdfdfd;
+  color: #fdfdfd;
+}
+.unmark-all:active {
+  background-color: #fdfdfd;
+  color: black;
+}
+
+.mark-all {
+  border-color: #fffdc1;
+  color: #fffdc1;
+}
+.mark-all:active {
+  background-color: #fffdc1;
+  color: black;
 }
 
 /* ///////////////////hover devices only/////////////////// */
