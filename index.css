@@ -198,6 +198,7 @@ li:has(.item-text:focus) {
   margin-left: auto;
   justify-self: flex-end;
   order: 1;
+  min-width: 50px;
 }
 
 .delete {
