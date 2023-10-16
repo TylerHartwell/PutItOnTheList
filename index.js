@@ -185,6 +185,7 @@ function markAllItems(bool) {
 }
 
 function deleteMarkedItems() {
+  //remove confirm after implementing undo
   if (confirm("Delete marked items from current list?") === true) {
     const items = document.querySelectorAll(".item")
 
