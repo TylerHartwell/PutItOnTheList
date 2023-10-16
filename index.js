@@ -184,17 +184,21 @@ function markAllItems(bool) {
   })
 }
 
-function deleteMarkedItems(e) {
+function deleteMarkedItems() {
   if (confirm("Delete marked items from current list?") === true) {
-    while (itemListEl.firstChild.id) {
-      const itemID = itemListEl.firstChild.id
-      let exactLocationOfItemInDB = ref(database, `${groupId}/${itemID}`)
-      remove(exactLocationOfItemInDB)
-    }
+    const items = document.querySelectorAll(".item")
+
+    items.forEach(li => {
+      if (li.dataset.itemHighlighted == "true") {
+        const itemID = li.id
+        let exactLocationOfItemInDB = ref(database, `${groupId}/${itemID}`)
+        remove(exactLocationOfItemInDB)
+      }
+    })
   }
 }
 
-function deleteAllItems(e) {
+function deleteAllItems() {
   if (confirm("Delete all items from current list?") === true) {
     while (itemListEl.firstChild.id) {
       const itemID = itemListEl.firstChild.id

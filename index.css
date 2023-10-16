@@ -222,7 +222,7 @@ li:has(.item-text:focus) {
 .delete-all,
 .unmark-all,
 .mark-all {
-  border: 4px double transparent;
+  border: 3px double transparent;
   color: #fdfdfd;
   background-color: #252525;
   margin: 2px;
@@ -233,8 +233,8 @@ li:has(.item-text:focus) {
 }
 
 .delete-marked {
-  border-color: #ec6f09;
-  color: #ec6f09;
+  border-color: #fc7371;
+  color: #fffdc1;
 }
 .delete-marked:active {
   background-color: #ec6f09;
