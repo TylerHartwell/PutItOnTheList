@@ -39,7 +39,7 @@ let groupId = groupSelectorEl.value
 const shoppingListInDB = ref(database, groupId)
 
 let canVibrate = false
-const vibrateLength = 15
+const vibrateLength = 3
 if ("vibrate" in navigator) canVibrate = true
 
 onValue(shoppingListInDB, function (snapshot) {
