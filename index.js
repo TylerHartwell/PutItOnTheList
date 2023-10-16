@@ -39,6 +39,7 @@ let groupId = groupSelectorEl.value
 const shoppingListInDB = ref(database, groupId)
 
 let canVibrate = false
+const vibrateLength = 15
 if ("vibrate" in navigator) canVibrate = true
 
 onValue(shoppingListInDB, function (snapshot) {
@@ -120,7 +121,7 @@ function leaveGroup() {
     )
     localStorage.setItem("group-ids", JSON.stringify(newGroupsArray))
     assureNonEmptyLocalStorage()
-    vibrate(50)
+    vibrate(vibrateLength)
     location.reload()
   }
 }
@@ -131,7 +132,7 @@ function joinGroup() {
       .then(isExisting => {
         if (isExisting) {
           makeGroupIdFirst(groupEntryEl.value)
-          vibrate(50)
+          vibrate(vibrateLength)
           location.reload()
         } else {
           groupEntryEl.value = ""
@@ -145,7 +146,7 @@ function joinGroup() {
 
 function copyGroup() {
   navigator.clipboard.writeText(groupSelectorEl.value)
-  vibrate(50)
+  vibrate(vibrateLength)
 }
 
 function assureNonEmptyLocalStorage() {
@@ -172,7 +173,7 @@ function toggleHighlight(e) {
     const itemID = li.id
     const itemHighlighted = li.dataset.itemHighlighted === "true"
     set(ref(database, `${groupId}/${itemID}/itemHighlighted`), !itemHighlighted)
-    vibrate(50)
+    vibrate(vibrateLength)
   }
 }
 
@@ -180,7 +181,7 @@ function deleteItem(e) {
   const itemID = e.target.parentElement.id
   let exactLocationOfItemInDB = ref(database, `${groupId}/${itemID}`)
   remove(exactLocationOfItemInDB)
-  vibrate(50)
+  vibrate(vibrateLength)
 }
 
 function markAllItems(bool) {
@@ -188,7 +189,7 @@ function markAllItems(bool) {
     if (li.dataset.itemHighlighted !== `${bool}`) {
       const itemID = li.id
       set(ref(database, `${groupId}/${itemID}/itemHighlighted`), bool)
-      vibrate(50)
+      vibrate(vibrateLength)
     }
   })
 }
@@ -203,7 +204,7 @@ function deleteMarkedItems() {
         const itemID = li.id
         let exactLocationOfItemInDB = ref(database, `${groupId}/${itemID}`)
         remove(exactLocationOfItemInDB)
-        vibrate(50)
+        vibrate(vibrateLength)
       }
     })
   }
@@ -215,7 +216,7 @@ function deleteAllItems() {
       const itemID = itemListEl.firstChild.id
       let exactLocationOfItemInDB = ref(database, `${groupId}/${itemID}`)
       remove(exactLocationOfItemInDB)
-      vibrate(50)
+      vibrate(vibrateLength)
     }
   }
 }
@@ -240,7 +241,7 @@ function blurOnEnterPress(e) {
 function editItem(e) {
   e.target.addEventListener("blur", saveEditedItem)
   e.target.addEventListener("keydown", blurOnEnterPress)
-  vibrate(50)
+  vibrate(vibrateLength)
 }
 
 function appendItemToShoppingListEl(item) {
@@ -295,7 +296,7 @@ function addInputToList(e) {
   if (inputValue !== "" && inputIsUnique(inputValue)) {
     let item = { itemName: inputValue, itemHighlighted: false }
     push(shoppingListInDB, item)
-    vibrate(50)
+    vibrate(vibrateLength)
   }
   clearInputFieldEl()
 }
