@@ -84,6 +84,7 @@ bodyEl.addEventListener("click", e => {
   if (e.target.matches(".delete")) deleteItem(e)
   if (e.target.matches(".item-text")) editItem(e)
   if (e.target.matches(".mark")) toggleHighlight(e)
+  if (e.target.matches(".delete-marked")) deleteMarkedItems()
   if (e.target.matches(".delete-all")) deleteAllItems()
   if (e.target.matches(".mark-all")) markAllItems(true)
   if (e.target.matches(".unmark-all")) markAllItems(false)
@@ -181,6 +182,16 @@ function markAllItems(bool) {
       set(ref(database, `${groupId}/${itemID}/itemHighlighted`), bool)
     }
   })
+}
+
+function deleteMarkedItems(e) {
+  if (confirm("Delete marked items from current list?") === true) {
+    while (itemListEl.firstChild.id) {
+      const itemID = itemListEl.firstChild.id
+      let exactLocationOfItemInDB = ref(database, `${groupId}/${itemID}`)
+      remove(exactLocationOfItemInDB)
+    }
+  }
 }
 
 function deleteAllItems(e) {

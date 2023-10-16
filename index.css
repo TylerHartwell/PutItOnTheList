@@ -218,6 +218,7 @@ li:has(.item-text:focus) {
   display: none;
 }
 
+.delete-marked,
 .delete-all,
 .unmark-all,
 .mark-all {
@@ -229,6 +230,15 @@ li:has(.item-text:focus) {
   text-align: center;
   font-family: "Rubik", sans-serif;
   font-weight: bold;
+}
+
+.delete-marked {
+  border-color: #ec6f09;
+  color: #ec6f09;
+}
+.delete-marked:active {
+  background-color: #ec6f09;
+  color: black;
 }
 
 .delete-all {
@@ -280,6 +290,11 @@ li:has(.item-text:focus) {
   .delete:hover,
   .mark:hover {
     scale: 1.5;
+  }
+
+  .delete-marked:hover {
+    background-color: #ec6f09;
+    color: black;
   }
 
   .delete-all:hover {
