@@ -24,7 +24,6 @@ const database = getDatabase(app)
 
 const bodyEl = document.querySelector("body")
 const itemEntryEl = document.querySelector(".item-entry")
-const addItemBtn = document.querySelector(".add-item-btn")
 const itemListEl = document.querySelector(".item-list")
 const multiItemOptionsEl = document.querySelector(".multi-item-options")
 const groupSelectorEl = document.querySelector(".group-selector")
@@ -76,7 +75,7 @@ groupEntryEl.addEventListener("keyup", function (e) {
 itemEntryEl.addEventListener("keyup", function (e) {
   e.preventDefault()
   if (e.key === "Enter") {
-    addItemBtn.click()
+    addInputToList(e)
   }
 })
 
@@ -291,12 +290,11 @@ function clearInputFieldEl() {
 }
 
 function addInputToList(e) {
-  e.preventDefault()
+  if (e.type === "click") vibrate(vibrateLength)
   let inputValue = itemEntryEl.value
   if (inputValue !== "" && inputIsUnique(inputValue)) {
     let item = { itemName: inputValue, itemHighlighted: false }
     push(shoppingListInDB, item)
-    vibrate(vibrateLength)
   }
   clearInputFieldEl()
 }
