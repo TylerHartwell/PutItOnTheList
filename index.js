@@ -195,29 +195,34 @@ function markAllItems(bool) {
 
 function deleteMarkedItems() {
   //remove confirm after implementing undo
+
   vibrate(vibrateLength)
-  if (confirm("Delete marked items from current list?") === true) {
-    const items = document.querySelectorAll(".item")
-    items.forEach(li => {
-      if (li.dataset.itemHighlighted == "true") {
-        const itemID = li.id
-        let exactLocationOfItemInDB = ref(database, `${groupId}/${itemID}`)
-        remove(exactLocationOfItemInDB)
-        vibrate(vibrateLength)
-      }
-    })
-  }
+  setTimeout(() => {
+    if (confirm("Delete marked items from current list?") === true) {
+      const items = document.querySelectorAll(".item")
+      items.forEach(li => {
+        if (li.dataset.itemHighlighted == "true") {
+          const itemID = li.id
+          let exactLocationOfItemInDB = ref(database, `${groupId}/${itemID}`)
+          remove(exactLocationOfItemInDB)
+          vibrate(vibrateLength)
+        }
+      })
+    }
+  }, vibrateLength * 2)
 }
 
 function deleteAllItems() {
   vibrate(vibrateLength)
-  if (confirm("Delete all items from current list?") === true) {
-    while (itemListEl.firstChild.id) {
-      const itemID = itemListEl.firstChild.id
-      let exactLocationOfItemInDB = ref(database, `${groupId}/${itemID}`)
-      remove(exactLocationOfItemInDB)
+  setTimeout(() => {
+    if (confirm("Delete all items from current list?") === true) {
+      while (itemListEl.firstChild.id) {
+        const itemID = itemListEl.firstChild.id
+        let exactLocationOfItemInDB = ref(database, `${groupId}/${itemID}`)
+        remove(exactLocationOfItemInDB)
+      }
     }
-  }
+  }, vibrateLength * 2)
 }
 
 function saveEditedItem(e) {
