@@ -4,16 +4,7 @@
 //show history list by frequency and recency
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-app.js"
-import {
-  getDatabase,
-  ref,
-  push,
-  onValue,
-  remove,
-  set,
-  get,
-  child
-} from "https://www.gstatic.com/firebasejs/9.15.0/firebase-database.js"
+import { getDatabase, ref, push, onValue, remove, set, get, child } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-database.js"
 
 const appSettings = {
   databaseURL: "https://playground-3bec0-default-rtdb.firebaseio.com/"
@@ -26,16 +17,20 @@ const bodyEl = document.querySelector("body")
 const itemEntryEl = document.querySelector(".item-entry")
 const itemListEl = document.querySelector(".item-list")
 const multiItemOptionsEl = document.querySelector(".multi-item-options")
-const groupSelectorEl = document.querySelector(".group-selector")
-const groupEntryEl = document.querySelector(".group-entry")
+const listSelectorEl = document.querySelector(".list-selector")
+const settingsModalEl = document.querySelector(".settings-modal")
+const currentListIdInputEl = document.querySelector(".current-list-id")
+const currentListNameInputEl = document.querySelector(".current-list-name")
+const newListNameInputEl = document.querySelector(".new-list-name")
+const joinListIdInputEl = document.querySelector(".join-list-id")
 
 assureNonEmptyLocalStorage()
 
-createGroupSelection()
+createListSelection()
 
-let groupId = groupSelectorEl.value
+let listId = listSelectorEl.value
 
-const shoppingListInDB = ref(database, groupId)
+const shoppingListInDB = ref(database, listId)
 
 let canVibrate = false
 const vibrateLength = 3
@@ -56,19 +51,33 @@ onValue(shoppingListInDB, function (snapshot) {
   }
 })
 
-groupSelectorEl.onchange = () => {
-  const selectedGroupId = groupSelectorEl.value
-  const selectedGroupIdIndex = groupSelectorEl.selectedIndex
-  if (selectedGroupIdIndex !== 0) {
-    makeGroupIdFirst(selectedGroupId)
+listSelectorEl.onchange = () => {
+  const selectedListId = listSelectorEl.value
+  const selectedListIdIndex = listSelectorEl.selectedIndex
+  if (selectedListIdIndex !== 0) {
+    makeListIdFirst(selectedListId)
     location.reload()
   }
 }
 
-groupEntryEl.addEventListener("keyup", function (e) {
+joinListIdInputEl.addEventListener("keyup", function (e) {
   e.preventDefault()
   if (e.key === "Enter") {
-    joinGroup()
+    joinList(joinListIdInputEl.value)
+  }
+})
+
+newListNameInputEl.addEventListener("keyup", function (e) {
+  e.preventDefault()
+  if (e.key === "Enter") {
+    createList(newListNameInputEl.value)
+  }
+})
+
+currentListNameInputEl.addEventListener("keyup", function (e) {
+  e.preventDefault()
+  if (e.key === "Enter") {
+    editListName(currentListNameInputEl.value)
   }
 })
 
@@ -80,9 +89,13 @@ itemEntryEl.addEventListener("keyup", function (e) {
 })
 
 bodyEl.addEventListener("click", e => {
-  if (e.target.matches(".leave")) leaveGroup()
-  if (e.target.matches(".join")) joinGroup()
-  if (e.target.matches(".copy")) copyGroup()
+  if (e.target.matches(".settings-btn")) openSettingsModal()
+  if (e.target.matches(".settings-modal") || e.target.matches(".modal-close") || e.target.matches(".modal-cancel")) closeSettingsModal()
+  if (e.target.matches(".modal-save-name")) editListName(currentListNameInputEl.value)
+  if (e.target.matches(".modal-copy")) copyList()
+  if (e.target.matches(".modal-leave")) leaveList()
+  if (e.target.matches(".modal-create")) createList(newListNameInputEl.value)
+  if (e.target.matches(".modal-join")) joinList(joinListIdInputEl.value)
   if (e.target.matches(".add-item-btn")) addInputToList(e)
   if (e.target.matches(".delete")) deleteItem(e)
   if (e.target.matches(".item-text")) editItem(e)
@@ -93,15 +106,26 @@ bodyEl.addEventListener("click", e => {
   if (e.target.matches(".unmark-all")) markAllItems(false)
 })
 
-function createGroupSelection() {
-  Array.from(JSON.parse(localStorage.getItem("group-ids"))).forEach(v => {
+bodyEl.addEventListener("keydown", e => {
+  if (e.key === "Escape" && !settingsModalEl.classList.contains("hidden")) {
+    closeSettingsModal()
+  }
+})
+
+function createListSelection() {
+  listSelectorEl.innerHTML = ""
+  const listNames = getListNames()
+  Array.from(JSON.parse(localStorage.getItem("list-ids"))).forEach(v => {
     const option = document.createElement("option")
-    option.text = v
-    groupSelectorEl.appendChild(option)
+    const listName = listNames[v]
+    option.text = listName ? listName : v
+    option.value = v
+    listSelectorEl.appendChild(option)
   })
+  syncSettingsModalFields()
 }
 
-function checkExistingGroup(id) {
+function checkExistingList(id) {
   const dbRef = ref(getDatabase())
   return get(child(dbRef, id))
     .then(snapshot => {
@@ -113,28 +137,50 @@ function checkExistingGroup(id) {
     })
 }
 
-function leaveGroup() {
-  if (groupEntryEl.value) {
-    const newGroupsArray = JSON.parse(localStorage.getItem("group-ids")).filter(
-      id => id !== groupEntryEl.value
-    )
-    localStorage.setItem("group-ids", JSON.stringify(newGroupsArray))
+function openSettingsModal() {
+  syncSettingsModalFields()
+  settingsModalEl.classList.remove("hidden")
+  settingsModalEl.setAttribute("aria-hidden", "false")
+}
+
+function closeSettingsModal() {
+  settingsModalEl.classList.add("hidden")
+  settingsModalEl.setAttribute("aria-hidden", "true")
+}
+
+function syncSettingsModalFields() {
+  const selectedListId = listSelectorEl.value
+  const listNames = getListNames()
+
+  currentListIdInputEl.value = selectedListId || ""
+  currentListNameInputEl.value = selectedListId ? listNames[selectedListId] || "" : ""
+}
+
+function leaveList(listIdToLeave = listSelectorEl.value) {
+  if (listIdToLeave) {
+    const newListsArray = JSON.parse(localStorage.getItem("list-ids")).filter(id => id !== listIdToLeave)
+    localStorage.setItem("list-ids", JSON.stringify(newListsArray))
+    pruneListNames(newListsArray)
     assureNonEmptyLocalStorage()
+    closeSettingsModal()
     vibrate(vibrateLength)
     location.reload()
   }
 }
 
-function joinGroup() {
-  if (groupEntryEl.value) {
-    checkExistingGroup(groupEntryEl.value)
+function joinList(nextListId) {
+  const listIdToJoin = nextListId ? nextListId.trim() : ""
+  if (listIdToJoin) {
+    checkExistingList(listIdToJoin)
       .then(isExisting => {
         if (isExisting) {
-          makeGroupIdFirst(groupEntryEl.value)
+          makeListIdFirst(listIdToJoin)
+          closeSettingsModal()
           vibrate(vibrateLength)
           location.reload()
         } else {
-          groupEntryEl.value = ""
+          joinListIdInputEl.value = ""
+          joinListIdInputEl.focus()
         }
       })
       .catch(error => {
@@ -143,27 +189,84 @@ function joinGroup() {
   }
 }
 
-function copyGroup() {
-  navigator.clipboard.writeText(groupSelectorEl.value)
+function createList(optionalListName) {
+  const newListId = String(Date.now())
+  makeListIdFirst(newListId)
+
+  const trimmedName = optionalListName ? optionalListName.trim() : ""
+  if (trimmedName) {
+    const listNames = getListNames()
+    listNames[newListId] = trimmedName
+    saveListNames(listNames)
+  }
+
+  closeSettingsModal()
+  vibrate(vibrateLength)
+  location.reload()
+}
+
+function copyList() {
+  navigator.clipboard.writeText(listSelectorEl.value)
+  closeSettingsModal()
+  vibrate(vibrateLength)
+}
+
+function editListName(nextName) {
+  const selectedListId = listSelectorEl.value
+  if (!selectedListId) return
+
+  const listNames = getListNames()
+  const trimmedName = nextName.trim()
+  if (trimmedName) {
+    listNames[selectedListId] = trimmedName
+  } else {
+    delete listNames[selectedListId]
+  }
+
+  saveListNames(listNames)
+  createListSelection()
+  listSelectorEl.value = selectedListId
+  syncSettingsModalFields()
+  closeSettingsModal()
   vibrate(vibrateLength)
 }
 
 function assureNonEmptyLocalStorage() {
-  if (
-    localStorage.getItem("group-ids") === null ||
-    Array.from(JSON.parse(localStorage.getItem("group-ids"))).length < 1
-  ) {
-    const newGroupId = String(Date.now())
-    localStorage.setItem("group-ids", JSON.stringify([newGroupId]))
+  if (localStorage.getItem("list-ids") === null || Array.from(JSON.parse(localStorage.getItem("list-ids"))).length < 1) {
+    const newListId = String(Date.now())
+    localStorage.setItem("list-ids", JSON.stringify([newListId]))
   }
+
+  if (localStorage.getItem("list-names") === null) {
+    localStorage.setItem("list-names", JSON.stringify({}))
+  }
+
+  pruneListNames(JSON.parse(localStorage.getItem("list-ids")))
 }
 
-function makeGroupIdFirst(groupId) {
-  const newGroupsArray = JSON.parse(localStorage.getItem("group-ids")).filter(
-    id => id !== groupId
-  )
-  newGroupsArray.unshift(groupId)
-  localStorage.setItem("group-ids", JSON.stringify(newGroupsArray))
+function makeListIdFirst(listId) {
+  const newListsArray = JSON.parse(localStorage.getItem("list-ids")).filter(id => id !== listId)
+  newListsArray.unshift(listId)
+  localStorage.setItem("list-ids", JSON.stringify(newListsArray))
+}
+
+function getListNames() {
+  const storedNames = localStorage.getItem("list-names")
+  return storedNames ? JSON.parse(storedNames) : {}
+}
+
+function saveListNames(listNames) {
+  localStorage.setItem("list-names", JSON.stringify(listNames))
+}
+
+function pruneListNames(listIds) {
+  const listNames = getListNames()
+  Object.keys(listNames).forEach(listId => {
+    if (!listIds.includes(listId)) {
+      delete listNames[listId]
+    }
+  })
+  saveListNames(listNames)
 }
 
 function toggleHighlight(e) {
@@ -171,14 +274,14 @@ function toggleHighlight(e) {
   if (li.classList.contains("item")) {
     const itemID = li.id
     const itemHighlighted = li.dataset.itemHighlighted === "true"
-    set(ref(database, `${groupId}/${itemID}/itemHighlighted`), !itemHighlighted)
+    set(ref(database, `${listId}/${itemID}/itemHighlighted`), !itemHighlighted)
     vibrate(vibrateLength)
   }
 }
 
 function deleteItem(e) {
   const itemID = e.target.parentElement.id
-  let exactLocationOfItemInDB = ref(database, `${groupId}/${itemID}`)
+  let exactLocationOfItemInDB = ref(database, `${listId}/${itemID}`)
   remove(exactLocationOfItemInDB)
   vibrate(vibrateLength)
 }
@@ -187,7 +290,7 @@ function markAllItems(bool) {
   Array.from(itemListEl.children).forEach(li => {
     if (li.dataset.itemHighlighted !== `${bool}`) {
       const itemID = li.id
-      set(ref(database, `${groupId}/${itemID}/itemHighlighted`), bool)
+      set(ref(database, `${listId}/${itemID}/itemHighlighted`), bool)
       vibrate(vibrateLength)
     }
   })
@@ -203,7 +306,7 @@ function deleteMarkedItems() {
       items.forEach(li => {
         if (li.dataset.itemHighlighted == "true") {
           const itemID = li.id
-          let exactLocationOfItemInDB = ref(database, `${groupId}/${itemID}`)
+          let exactLocationOfItemInDB = ref(database, `${listId}/${itemID}`)
           remove(exactLocationOfItemInDB)
           vibrate(vibrateLength)
         }
@@ -218,7 +321,7 @@ function deleteAllItems() {
     if (confirm("Delete all items from current list?") === true) {
       while (itemListEl.firstChild.id) {
         const itemID = itemListEl.firstChild.id
-        let exactLocationOfItemInDB = ref(database, `${groupId}/${itemID}`)
+        let exactLocationOfItemInDB = ref(database, `${listId}/${itemID}`)
         remove(exactLocationOfItemInDB)
       }
     }
@@ -229,7 +332,7 @@ function saveEditedItem(e) {
   const li = e.target.parentElement
   if (li.classList.contains("item")) {
     const itemID = li.id
-    set(ref(database, `${groupId}/${itemID}/itemName`), e.target.textContent)
+    set(ref(database, `${listId}/${itemID}/itemName`), e.target.textContent)
   }
   e.target.removeEventListener("blur", saveEditedItem)
 }

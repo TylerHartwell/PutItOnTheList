@@ -1,31 +1,14 @@
-<!DOCTYPE html>
+<!doctype html>
 <html>
   <head>
     <title>PutItOnTheList</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link
-      href="https://fonts.googleapis.com/css2?family=Rubik:wght@300&display=swap"
-      rel="stylesheet"
-    />
-    <link
-      rel="apple-touch-icon"
-      sizes="152x152"
-      href="favicons/apple-touch-icon.png"
-    />
-    <link
-      rel="icon"
-      type="image/png"
-      sizes="32x32"
-      href="favicons/favicon-32x32.png"
-    />
-    <link
-      rel="icon"
-      type="image/png"
-      sizes="16x16"
-      href="favicons/favicon-16x16.png"
-    />
+    <link href="https://fonts.googleapis.com/css2?family=Rubik:wght@300&display=swap" rel="stylesheet" />
+    <link rel="apple-touch-icon" sizes="152x152" href="favicons/apple-touch-icon.png" />
+    <link rel="icon" type="image/png" sizes="32x32" href="favicons/favicon-32x32.png" />
+    <link rel="icon" type="image/png" sizes="16x16" href="favicons/favicon-16x16.png" />
     <link rel="mask-icon" href="/safari-pinned-tab.svg" color="#5bbad5" />
     <meta name="msapplication-TileColor" content="#da532c" />
     <meta name="theme-color" content="#ffffff" />
@@ -34,32 +17,80 @@
   </head>
   <body>
     <div class="container">
-      <div class="group-top">
-        <button class="leave">Leave</button
-        ><input
-          type="text"
-          id="group-entry"
-          class="group-entry"
-          placeholder="Enter Group Number"
-          autocomplete="off"
-          enterkeyhint="done"
-        />
-        <button class="join">Join</button>
+      <div class="list-bottom">
+        <label for="list-selector" class="list-label">Current:</label>
+        <select id="list-selector" class="list-selector"></select>
+        <button class="settings-btn" aria-haspopup="dialog" aria-controls="settings-modal">Settings</button>
       </div>
-      <div class="group-bottom">
-        <label for="group-selector" class="group-label">Current:</label>
-        <select id="group-selector" class="group-selector"></select>
-        <button class="copy">Copy</button>
+
+      <div id="settings-modal" class="settings-modal hidden" aria-hidden="true">
+        <div class="settings-modal-panel" role="dialog" aria-modal="true" aria-labelledby="settings-title">
+          <div class="settings-modal-header">
+            <h2 id="settings-title">List Settings</h2>
+            <button class="modal-close" aria-label="Close settings">X</button>
+          </div>
+
+          <section class="settings-section">
+            <h3 class="settings-section-title">Current List</h3>
+            <label class="settings-label" for="current-list-id">List Number</label>
+            <div class="current-list-id-wrapper">
+              <input type="text" id="current-list-id" class="modal-input current-list-id" readonly />
+              <button class="modal-action modal-copy">Copy</button>
+            </div>
+
+            <label class="settings-label current-list-name-label" for="current-list-name">Local List Name</label>
+            <div class="current-list-name-wrapper">
+              <input
+                type="text"
+                id="current-list-name"
+                class="modal-input current-list-name"
+                placeholder="Optional"
+                autocomplete="off"
+                enterkeyhint="done"
+              />
+              <button class="modal-action modal-save-name">Save</button>
+            </div>
+
+            <div class="modal-actions">
+              <button class="modal-action modal-leave">Leave List</button>
+            </div>
+          </section>
+
+          <section class="settings-section">
+            <h3 class="settings-section-title">Create New List</h3>
+            <label class="settings-label" for="new-list-name">Local List Name</label>
+            <div class="new-list-name-wrapper">
+              <input type="text" id="new-list-name" class="modal-input new-list-name" placeholder="Optional" autocomplete="off" enterkeyhint="done" />
+
+              <button class="modal-action modal-create">Create</button>
+            </div>
+          </section>
+
+          <section class="settings-section">
+            <h3 class="settings-section-title">Join Existing List</h3>
+            <label class="settings-label" for="join-list-id">List Number</label>
+
+            <div class="join-list-id-wrapper">
+              <input
+                type="text"
+                id="join-list-id"
+                class="modal-input join-list-id"
+                placeholder="Paste list number"
+                autocomplete="off"
+                enterkeyhint="done"
+              />
+              <button class="modal-action modal-join">Join</button>
+            </div>
+          </section>
+
+          <div class="settings-modal-footer">
+            <button class="modal-cancel">Close</button>
+          </div>
+        </div>
       </div>
+
       <img src="assets/top-hat-cat.png" />
-      <input
-        type="text"
-        id="item-entry"
-        class="item-entry"
-        placeholder="Enter Item"
-        autocomplete="off"
-        enterkeyhint="done"
-      />
+      <input type="text" id="item-entry" class="item-entry" placeholder="Enter Item" autocomplete="off" enterkeyhint="done" />
       <button class="add-item-btn">Put It On The List</button>
       <ul class="item-list">
         No items here...yet
