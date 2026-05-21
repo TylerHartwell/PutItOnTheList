@@ -12,39 +12,26 @@ export function BulkActions({ hasItems, onDeleteMarkedItems, onDeleteAllItems, o
   }
 
   return (
-    <div className="mt-6 flex flex-wrap gap-1">
+    <div className="mt-6 flex items-center gap-1">
       <BulkActionButton
         label="X Marked"
         onClick={onDeleteMarkedItems}
-        borderColor="border-[#fc7371]"
-        textColor="text-[#fffdc1]"
-        activeBg="bg-[#ec6f09]"
-        activeText="text-black"
+        className="border-[#fc7371] text-[#fffdc1] active:bg-[#ec6f09] hover:bg-[#ec6f09] active:text-black"
       />
       <BulkActionButton
         label="X All"
         onClick={onDeleteAllItems}
-        borderColor="border-[#fc7371]"
-        textColor="text-[#fc7371]"
-        activeBg="bg-[#fc7371]"
-        activeText="text-black"
-        extraClassName="mr-auto"
+        className="mr-auto border-[#fc7371] text-[#fc7371] active:bg-[#fc7371] hover:bg-[#fc7371] active:text-black"
       />
       <BulkActionButton
         label="Unmark All"
         onClick={onUnmarkAll}
-        borderColor="border-[#fdfdfd]"
-        textColor="text-[#fdfdfd]"
-        activeBg="bg-[#fdfdfd]"
-        activeText="text-black"
+        className="border-[#fdfdfd] text-[#fdfdfd] active:bg-[#fdfdfd] hover:bg-[#fdfdfd] active:text-black"
       />
       <BulkActionButton
         label="Mark All"
         onClick={onMarkAll}
-        borderColor="border-[#fffdc1]"
-        textColor="text-[#fffdc1]"
-        activeBg="bg-[#fffdc1]"
-        activeText="text-black"
+        className="border-[#fffdc1] text-[#fffdc1] active:bg-[#fffdc1] hover:bg-[#fffdc1] active:text-black"
       />
     </div>
   )
