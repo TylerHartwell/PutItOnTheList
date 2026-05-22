@@ -22,7 +22,7 @@ export function BulkActions({ hasItems, onDeleteMarkedItems, onDeleteAllItems, o
         <BulkActionButton
           label="X All"
           onClick={onDeleteAllItems}
-          className="mr-auto border-[#fc7371] text-[#fc7371] active:bg-[#fc7371] hover:bg-[#fc7371] active:text-black"
+          className="border-[#fc7371] text-[#fc7371] active:bg-[#fc7371] hover:bg-[#fc7371] active:text-black"
         />
       </div>
       <div className="flex flex-wrap justify-end gap-x-1 gap-y-2">

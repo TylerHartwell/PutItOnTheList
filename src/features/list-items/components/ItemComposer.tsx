@@ -5,8 +5,13 @@ type ItemComposerProps = {
 }
 
 export function ItemComposer({ itemEntry, onItemEntryChange, onAddItem }: ItemComposerProps) {
+  const handleSubmit = (event: React.SubmitEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    onAddItem()
+  }
+
   return (
-    <>
+    <form onSubmit={handleSubmit}>
       <input
         type="text"
         name="itemEntry"
@@ -15,20 +20,14 @@ export function ItemComposer({ itemEntry, onItemEntryChange, onAddItem }: ItemCo
         autoComplete="off"
         value={itemEntry}
         onChange={event => onItemEntryChange(event.target.value)}
-        onKeyUp={event => {
-          if (event.key === "Enter") {
-            onAddItem()
-          }
-        }}
       />
 
       <button
-        type="button"
+        type="submit"
         className="w-full rounded-md bg-[#ffd9009a] p-3.5 text-center text-xl transition-all duration-150 hover:-translate-y-px hover:bg-[#252525] hover:text-[#fdfdfd] active:translate-y-0.5 active:scale-[0.99] active:bg-[#252525] active:text-[#fdfdfd]"
-        onClick={onAddItem}
       >
         Put It On The List
       </button>
-    </>
+    </form>
   )
 }
