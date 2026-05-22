@@ -89,16 +89,11 @@ export function useShoppingList() {
       return
     }
 
-    const normalizedInput = inputValue.toLowerCase()
-    const isUnique = !items.some(item => normalizeText(item.itemName).toLowerCase() === normalizedInput)
-
-    if (isUnique) {
-      push(ref(database, currentListId), {
-        itemName: inputValue,
-        itemHighlighted: false
-      })
-      vibrate()
-    }
+    push(ref(database, currentListId), {
+      itemName: inputValue,
+      itemHighlighted: false
+    })
+    vibrate()
 
     setItemEntry("")
   }

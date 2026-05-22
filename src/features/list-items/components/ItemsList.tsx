@@ -66,6 +66,7 @@ export function ItemsList({
               type="button"
               className={`min-w-0 flex-1 bg-transparent px-1.5 py-2 text-left text-xl cursor-auto wrap-break-word ${item.itemHighlighted ? "opacity-50" : ""}`}
               onClick={() => onStartEditItem(item)}
+              aria-label={`Edit ${item.itemName}`}
             >
               {item.itemName}
             </button>
