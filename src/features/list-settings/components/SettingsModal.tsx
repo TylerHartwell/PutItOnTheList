@@ -147,10 +147,6 @@ export function SettingsModal({
               <SettingsButton onClick={() => void onJoinList()}>Join</SettingsButton>
             </div>
           </section>
-
-          <div className="mt-3.5 flex justify-center">
-            <SettingsButton onClick={onClose}>Close</SettingsButton>
-          </div>
         </div>
       </div>
     </div>

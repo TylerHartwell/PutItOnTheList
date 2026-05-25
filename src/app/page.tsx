@@ -1,76 +1,39 @@
 "use client"
 
 import Image from "next/image"
-import { useMemo } from "react"
 import { ListSelectorBar } from "@/features/list-selector"
 import { SettingsModal } from "@/features/list-settings"
 import { BulkActions, ItemComposer, ItemsList } from "@/features/list-items"
 import { useShoppingList } from "@/features/shopping-core"
 
 export default function Home() {
-  const {
-    listIds,
-    listNames,
-    currentListId,
-    items,
-    itemEntry,
-    setItemEntry,
-    isSettingsOpen,
-    currentListNameInput,
-    setCurrentListNameInput,
-    newListNameInput,
-    setNewListNameInput,
-    joinListIdInput,
-    setJoinListIdInput,
-    editingItemId,
-    editingItemText,
-    setEditingItemText,
-    editInputRef,
-    makeListIdFirst,
-    addInputToList,
-    toggleHighlight,
-    deleteItem,
-    markAllItems,
-    deleteMarkedItems,
-    deleteAllItems,
-    startEditItem,
-    saveEditedItem,
-    openSettingsModal,
-    closeSettingsModal,
-    leaveList,
-    joinList,
-    createList,
-    copyList,
-    editListName
-  } = useShoppingList()
-
-  const sortedItems = useMemo(() => items, [items])
+  const { lists, items: itemsState, settings } = useShoppingList()
 
   return (
     <div className="mx-auto my-6 w-[90%] max-w-170 text-[#432000]">
       <ListSelectorBar
-        listIds={listIds}
-        listNames={listNames}
-        currentListId={currentListId}
-        onChangeList={makeListIdFirst}
-        onOpenSettings={openSettingsModal}
+        listIds={lists.listIds}
+        listNames={lists.listNames}
+        currentListId={lists.currentListId}
+        onChangeList={lists.makeListIdFirst}
+        onOpenSettings={settings.openSettingsModal}
       />
 
-      {isSettingsOpen && (
+      {settings.isSettingsOpen && (
         <SettingsModal
-          currentListId={currentListId}
-          currentListNameInput={currentListNameInput}
-          newListNameInput={newListNameInput}
-          joinListIdInput={joinListIdInput}
-          onClose={closeSettingsModal}
-          onCopyList={copyList}
-          onCurrentListNameChange={setCurrentListNameInput}
-          onSaveCurrentListName={editListName}
-          onLeaveList={leaveList}
-          onNewListNameChange={setNewListNameInput}
-          onCreateList={createList}
-          onJoinListIdChange={setJoinListIdInput}
-          onJoinList={joinList}
+          currentListId={lists.currentListId}
+          currentListNameInput={settings.currentListNameInput}
+          newListNameInput={settings.newListNameInput}
+          joinListIdInput={settings.joinListIdInput}
+          onClose={settings.closeSettingsModal}
+          onCopyList={settings.copyList}
+          onCurrentListNameChange={settings.setCurrentListNameInput}
+          onSaveCurrentListName={settings.editListName}
+          onLeaveList={settings.leaveList}
+          onNewListNameChange={settings.setNewListNameInput}
+          onCreateList={settings.createList}
+          onJoinListIdChange={settings.setJoinListIdInput}
+          onJoinList={settings.joinList}
         />
       )}
 
@@ -83,26 +46,26 @@ export default function Home() {
         priority
       />
 
-      <ItemComposer itemEntry={itemEntry} onItemEntryChange={setItemEntry} onAddItem={addInputToList} />
+      <ItemComposer itemEntry={itemsState.itemEntry} onItemEntryChange={itemsState.setItemEntry} onAddItem={itemsState.addInputToList} />
 
       <ItemsList
-        items={sortedItems}
-        editingItemId={editingItemId}
-        editingItemText={editingItemText}
-        editInputRef={editInputRef}
-        onDeleteItem={deleteItem}
-        onStartEditItem={startEditItem}
-        onEditingItemTextChange={setEditingItemText}
-        onSaveEditedItem={saveEditedItem}
-        onToggleHighlight={toggleHighlight}
+        items={itemsState.items}
+        editingItemId={itemsState.editingItemId}
+        editingItemText={itemsState.editingItemText}
+        editInputRef={itemsState.editInputRef}
+        onDeleteItem={itemsState.deleteItem}
+        onStartEditItem={itemsState.startEditItem}
+        onEditingItemTextChange={itemsState.setEditingItemText}
+        onSaveEditedItem={itemsState.saveEditedItem}
+        onToggleHighlight={itemsState.toggleHighlight}
       />
 
       <BulkActions
-        hasItems={sortedItems.length > 0}
-        onDeleteMarkedItems={deleteMarkedItems}
-        onDeleteAllItems={deleteAllItems}
-        onUnmarkAll={() => markAllItems(false)}
-        onMarkAll={() => markAllItems(true)}
+        hasItems={itemsState.items.length > 0}
+        onDeleteMarkedItems={itemsState.deleteMarkedItems}
+        onDeleteAllItems={itemsState.deleteAllItems}
+        onUnmarkAll={() => itemsState.markAllItems(false)}
+        onMarkAll={() => itemsState.markAllItems(true)}
       />
     </div>
   )
