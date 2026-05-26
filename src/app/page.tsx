@@ -19,23 +19,22 @@ export default function Home() {
         onOpenSettings={settings.openSettingsModal}
       />
 
-      {settings.isSettingsOpen && (
-        <SettingsModal
-          currentListId={lists.currentListId}
-          currentListNameInput={settings.currentListNameInput}
-          newListNameInput={settings.newListNameInput}
-          joinListIdInput={settings.joinListIdInput}
-          onClose={settings.closeSettingsModal}
-          onCopyList={settings.copyList}
-          onCurrentListNameChange={settings.setCurrentListNameInput}
-          onSaveCurrentListName={settings.editListName}
-          onLeaveList={settings.leaveList}
-          onNewListNameChange={settings.setNewListNameInput}
-          onCreateList={settings.createList}
-          onJoinListIdChange={settings.setJoinListIdInput}
-          onJoinList={settings.joinList}
-        />
-      )}
+      <SettingsModal
+        currentListId={lists.currentListId}
+        currentListNameInput={settings.currentListNameInput}
+        newListNameInput={settings.newListNameInput}
+        joinListIdInput={settings.joinListIdInput}
+        onClose={settings.closeSettingsModal}
+        onCopyList={settings.copyList}
+        onCurrentListNameChange={settings.setCurrentListNameInput}
+        onSaveCurrentListName={settings.editListName}
+        onLeaveList={settings.leaveList}
+        onNewListNameChange={settings.setNewListNameInput}
+        onCreateList={settings.createList}
+        onJoinListIdChange={settings.setJoinListIdInput}
+        onJoinList={settings.joinList}
+        settingsModalRef={settings.settingsModalRef as React.RefObject<HTMLDialogElement>}
+      />
 
       <Image
         src="/top-hat-cat.png"

@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useRef, useState } from "react"
 import { child, get, getDatabase, ref } from "firebase/database"
 import { normalizeText, vibrate } from "../lib/text"
 import type { ListNames } from "./useListsConcern"
@@ -20,18 +20,18 @@ export function useSettingsConcern({
   persistAndSetLists,
   makeListIdFirst
 }: SettingsConcernParams) {
-  const [isSettingsOpen, setIsSettingsOpen] = useState(false)
   const [currentListNameInput, setCurrentListNameInput] = useState("")
   const [newListNameInput, setNewListNameInput] = useState("")
   const [joinListIdInput, setJoinListIdInput] = useState("")
+  const settingsModalRef = useRef<HTMLDialogElement | null>(null)
 
   function openSettingsModal() {
     setCurrentListNameInput(listNames[currentListId] ?? "")
-    setIsSettingsOpen(true)
+    settingsModalRef.current?.showModal()
   }
 
   function closeSettingsModal() {
-    setIsSettingsOpen(false)
+    settingsModalRef.current?.close()
   }
 
   function leaveList() {
@@ -133,7 +133,6 @@ export function useSettingsConcern({
   }
 
   return {
-    isSettingsOpen,
     currentListNameInput,
     setCurrentListNameInput,
     newListNameInput,
@@ -146,7 +145,8 @@ export function useSettingsConcern({
     joinList,
     createList,
     copyList,
-    editListName
+    editListName,
+    settingsModalRef
   }
 }
 
