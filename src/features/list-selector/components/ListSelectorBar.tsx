@@ -1,14 +1,14 @@
+import { StoredList } from "@/shared/types/shopping"
 import { Settings } from "lucide-react"
 
 type ListSelectorBarProps = {
-  listIds: string[]
-  listNames: Record<string, string>
+  storedLists: StoredList[]
   currentListId: string
   onChangeList: (listId: string) => void
   onOpenSettings: () => void
 }
 
-export function ListSelectorBar({ listIds, listNames, currentListId, onChangeList, onOpenSettings }: ListSelectorBarProps) {
+export function ListSelectorBar({ storedLists, currentListId, onChangeList, onOpenSettings }: ListSelectorBarProps) {
   return (
     <div className="mx-auto my-0 flex w-full items-center justify-center gap-1 text-sm">
       <label htmlFor="list-selector" className=" text-center">
@@ -25,9 +25,9 @@ export function ListSelectorBar({ listIds, listNames, currentListId, onChangeLis
           }
         }}
       >
-        {listIds.map(listId => (
-          <option key={listId} value={listId}>
-            {listNames[listId] || listId}
+        {storedLists.map(list => (
+          <option key={list.listId} value={list.listId}>
+            {list.listName || list.listId}
           </option>
         ))}
       </select>

@@ -1,59 +1,60 @@
-import { useEffect, useState } from "react"
-import { loadSavedLists, persistLists } from "../lib/storage"
+"use client"
 
-export type ListNames = Record<string, string>
+import { useEffect, useState } from "react"
+import { LISTS_KEY, loadStorageLists, saveToLocalStorage } from "../utils/storage"
+import { StoredList } from "@/shared/types/shopping"
 
 export function useListsConcern() {
-  const [listIds, setListIds] = useState<string[]>([])
-  const [listNames, setListNames] = useState<ListNames>({})
+  const [storedLists, setStoredLists] = useState<StoredList[]>([])
   const [currentListId, setCurrentListId] = useState("")
 
   useEffect(() => {
-    let isMounted = true
-    const { seededListIds, prunedListNames } = loadSavedLists()
+    let isCancelled = false
 
-    persistLists(seededListIds, prunedListNames)
-
-    queueMicrotask(() => {
-      if (!isMounted) {
+    Promise.resolve().then(() => {
+      if (isCancelled) {
         return
       }
 
-      setListIds(seededListIds)
-      setListNames(prunedListNames)
-      setCurrentListId(previousListId => (seededListIds.includes(previousListId) ? previousListId : (seededListIds[0] ?? "")))
+      try {
+        const loadedLists = loadStorageLists()
+
+        setStoredLists(loadedLists)
+        setCurrentListId(previousListId => {
+          if (previousListId && loadedLists.some(list => list.listId === previousListId)) {
+            return previousListId
+          }
+
+          return loadedLists[0]?.listId ?? ""
+        })
+      } catch {
+        setStoredLists([])
+        setCurrentListId("")
+      }
     })
 
     return () => {
-      isMounted = false
+      isCancelled = true
     }
   }, [])
 
-  function persistAndSetLists(nextListIds: string[], nextListNames: ListNames) {
-    persistLists(nextListIds, nextListNames)
-    setListIds(nextListIds)
-    setListNames(nextListNames)
+  const handleListsChange = (nextLists: StoredList[]) => {
+    setStoredLists(nextLists)
+    saveToLocalStorage(LISTS_KEY, nextLists)
   }
 
   function makeListIdFirst(listId: string) {
-    const nextListIds = [listId, ...listIds.filter(id => id !== listId)]
-    const nextNames: ListNames = {}
-    for (const id of nextListIds) {
-      if (listNames[id]) {
-        nextNames[id] = listNames[id]
-      }
-    }
+    const reorderedLists = storedLists.filter(list => list.listId === listId).concat(storedLists.filter(list => list.listId !== listId))
 
-    persistAndSetLists(nextListIds, nextNames)
+    handleListsChange(reorderedLists)
     setCurrentListId(listId)
   }
 
   return {
-    listIds,
-    listNames,
+    storedLists,
     currentListId,
     setCurrentListId,
-    persistAndSetLists,
+    handleListsChange,
     makeListIdFirst
   }
 }

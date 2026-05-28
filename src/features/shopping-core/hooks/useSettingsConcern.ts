@@ -1,32 +1,25 @@
 import { useRef, useState } from "react"
 import { child, get, getDatabase, ref } from "firebase/database"
-import { normalizeText, vibrate } from "../lib/text"
-import type { ListNames } from "./useListsConcern"
+import { vibrate } from "@/shared/utils/vibrate"
+import { normalizeText } from "@/shared/utils/text"
+import { addListToStorage, generateListId } from "../utils/storage"
+import { StoredList } from "@/shared/types/shopping"
 
 export type SettingsConcernParams = {
   currentListId: string
-  listIds: string[]
-  listNames: ListNames
+  storedLists: StoredList[]
   setCurrentListId: (value: string) => void
-  persistAndSetLists: (nextListIds: string[], nextListNames: ListNames) => void
-  makeListIdFirst: (listId: string) => void
+  handleListsChange: (nextLists: StoredList[]) => void
 }
 
-export function useSettingsConcern({
-  currentListId,
-  listIds,
-  listNames,
-  setCurrentListId,
-  persistAndSetLists,
-  makeListIdFirst
-}: SettingsConcernParams) {
+export function useSettingsConcern({ currentListId, storedLists, setCurrentListId, handleListsChange }: SettingsConcernParams) {
   const [currentListNameInput, setCurrentListNameInput] = useState("")
   const [newListNameInput, setNewListNameInput] = useState("")
   const [joinListIdInput, setJoinListIdInput] = useState("")
   const settingsModalRef = useRef<HTMLDialogElement | null>(null)
 
   function openSettingsModal() {
-    setCurrentListNameInput(listNames[currentListId] ?? "")
+    setCurrentListNameInput(storedLists.find(list => list.listId === currentListId)?.listName ?? "")
     settingsModalRef.current?.showModal()
   }
 
@@ -39,23 +32,15 @@ export function useSettingsConcern({
       return
     }
 
-    const confirmed = window.confirm("Leave this list? You can rejoin later using its list number.")
-    if (!confirmed) {
+    if (!window.confirm("Leave this list? You can rejoin later using its list number.")) {
       return
     }
 
-    const remainingListIds = listIds.filter(id => id !== currentListId)
-    const nextListIds = remainingListIds.length > 0 ? remainingListIds : [String(Date.now())]
-    const nextListNames: ListNames = {}
+    const remainingLists = storedLists.filter(list => list.listId !== currentListId)
+    const nextLists = remainingLists.length > 0 ? remainingLists : [{ listId: generateListId(), listName: "" }]
 
-    for (const id of nextListIds) {
-      if (listNames[id]) {
-        nextListNames[id] = listNames[id]
-      }
-    }
-
-    persistAndSetLists(nextListIds, nextListNames)
-    setCurrentListId(nextListIds[0])
+    handleListsChange(nextLists)
+    setCurrentListId(nextLists[0].listId)
     closeSettingsModal()
     vibrate()
   }
@@ -74,7 +59,7 @@ export function useSettingsConcern({
         return
       }
 
-      makeListIdFirst(listIdToJoin)
+      addListToStorage(listIdToJoin)
       setJoinListIdInput("")
       closeSettingsModal()
       vibrate()
@@ -84,16 +69,11 @@ export function useSettingsConcern({
   }
 
   function createList() {
-    const newListId = String(Date.now())
-    const nextListIds = [newListId, ...listIds.filter(id => id !== newListId)]
+    const newListId = generateListId()
     const trimmedName = normalizeText(newListNameInput)
-    const nextNames = { ...listNames }
+    const nextLists = [{ listId: newListId, listName: trimmedName }, ...storedLists]
 
-    if (trimmedName) {
-      nextNames[newListId] = trimmedName
-    }
-
-    persistAndSetLists(nextListIds, nextNames)
+    handleListsChange(nextLists)
     setCurrentListId(newListId)
     setNewListNameInput("")
     closeSettingsModal()
@@ -119,15 +99,10 @@ export function useSettingsConcern({
     }
 
     const trimmedName = normalizeText(currentListNameInput)
-    const nextNames = { ...listNames }
 
-    if (trimmedName) {
-      nextNames[currentListId] = trimmedName
-    } else {
-      delete nextNames[currentListId]
-    }
+    const nextLists = storedLists.map(list => (list.listId === currentListId ? { ...list, listName: trimmedName } : list))
 
-    persistAndSetLists(listIds, nextNames)
+    handleListsChange(nextLists)
     closeSettingsModal()
     vibrate()
   }

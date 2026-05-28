@@ -12,8 +12,7 @@ export default function Home() {
   return (
     <div className="mx-auto my-6 w-[90%] max-w-170 text-[#432000]">
       <ListSelectorBar
-        listIds={lists.listIds}
-        listNames={lists.listNames}
+        storedLists={lists.storedLists}
         currentListId={lists.currentListId}
         onChangeList={lists.makeListIdFirst}
         onOpenSettings={settings.openSettingsModal}

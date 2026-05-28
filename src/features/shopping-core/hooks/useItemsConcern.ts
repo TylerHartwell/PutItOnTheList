@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from "react"
 import { onValue, push, ref, remove, set } from "firebase/database"
-import { database } from "../lib/firebase"
-import { normalizeText, vibrate } from "../lib/text"
+import { database } from "../services/firebase"
 import type { ShoppingItem } from "@/shared/types/shopping"
+import { vibrate } from "@/shared/utils/vibrate"
+import { normalizeText } from "@/shared/utils/text"
 
 export function useItemsConcern(currentListId: string) {
   const [items, setItems] = useState<ShoppingItem[]>([])

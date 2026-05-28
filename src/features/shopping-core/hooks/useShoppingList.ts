@@ -3,23 +3,20 @@ import { useListsConcern } from "./useListsConcern"
 import { useSettingsConcern } from "./useSettingsConcern"
 
 export function useShoppingList() {
-  const lists = useListsConcern()
-  const items = useItemsConcern(lists.currentListId)
+  const listsConcern = useListsConcern()
+  const items = useItemsConcern(listsConcern.currentListId)
   const settings = useSettingsConcern({
-    currentListId: lists.currentListId,
-    listIds: lists.listIds,
-    listNames: lists.listNames,
-    setCurrentListId: lists.setCurrentListId,
-    persistAndSetLists: lists.persistAndSetLists,
-    makeListIdFirst: lists.makeListIdFirst
+    currentListId: listsConcern.currentListId,
+    storedLists: listsConcern.storedLists,
+    setCurrentListId: listsConcern.setCurrentListId,
+    handleListsChange: listsConcern.handleListsChange
   })
 
   return {
     lists: {
-      listIds: lists.listIds,
-      listNames: lists.listNames,
-      currentListId: lists.currentListId,
-      makeListIdFirst: lists.makeListIdFirst
+      storedLists: listsConcern.storedLists,
+      currentListId: listsConcern.currentListId,
+      makeListIdFirst: listsConcern.makeListIdFirst
     },
     items,
     settings
