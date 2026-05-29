@@ -82,14 +82,16 @@ export function useSettingsConcern({ currentListId, storedLists, setCurrentListI
 
   async function copyList() {
     if (!currentListId) {
-      return
+      return false
     }
 
     try {
       await navigator.clipboard.writeText(currentListId)
       vibrate()
+      return true
     } catch {
       window.alert("Could not copy list number. Please copy it manually.")
+      return false
     }
   }
 

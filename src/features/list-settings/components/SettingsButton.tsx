@@ -11,7 +11,10 @@ export function SettingsButton({ className, children, ...props }: SettingsButton
     <button
       type="button"
       className={cn(
-        "px-2 py-1 rounded-md border border-transparent bg-[#252525] text-[#fdfdfd] focus:border-black focus:outline-none hover:bg-[#fdfdfd] hover:text-[#252525] active:bg-[#fdfdfd] active:text-[#252525] active:outline-2 active:outline-[#252525]",
+        "px-2 py-1 rounded-md bg-[#252525] text-[#fdfdfd] cursor-pointer",
+        " focus-visible:outline-gray-500 focus-visible:outline-2 focus-visible:outline-offset-1",
+        "hover:bg-[#fdfdfd] hover:text-[#252525] hover:outline-2 hover:outline-[#252525]",
+        "active:bg-[#fdfdfd] active:text-[#252525] active:translate-y-0.5 active:scale-[0.99]",
         className
       )}
       {...props}

@@ -24,7 +24,7 @@ export function ItemComposer({ itemEntry, onItemEntryChange, onAddItem }: ItemCo
 
       <button
         type="submit"
-        className="w-full rounded-md bg-[#ffd9009a] p-3.5 text-center text-xl transition-all duration-150 hover:-translate-y-px hover:bg-[#252525] hover:text-[#fdfdfd] active:translate-y-0.5 active:scale-[0.99] active:bg-[#252525] active:text-[#fdfdfd]"
+        className="w-full rounded-md bg-[#ffd9009a] p-3.5 text-center text-xl transition-all duration-150  hover:bg-[#252525] hover:text-[#fdfdfd] active:translate-y-0.5 active:scale-[0.99] active:bg-[#252525] active:text-[#fdfdfd]"
       >
         Put It On The List
       </button>
