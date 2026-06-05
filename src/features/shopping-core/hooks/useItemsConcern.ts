@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react"
 import { onValue, push, ref, remove, set } from "firebase/database"
-import { database } from "../services/firebase"
+import { database } from "@/shared/lib/firebase"
 import type { ShoppingItem } from "@/shared/types/shopping"
 import { vibrate } from "@/shared/utils/vibrate"
 import { normalizeText } from "@/shared/utils/text"

@@ -1,6 +1,7 @@
 "use client"
 
 import Image from "next/image"
+import { EmailLinkAuthGate } from "@/features/auth/components/EmailLinkAuthGate"
 import { useShoppingList } from "@/features/shopping-core/hooks/useShoppingList"
 import { ListSelectorBar } from "@/features/list-selector/components/ListSelectorBar"
 import { SettingsModal } from "@/features/list-settings/components/SettingsModal"
@@ -8,11 +9,11 @@ import { ItemComposer } from "@/features/list-items/components/ItemComposer"
 import { ItemsList } from "@/features/list-items/components/ItemsList"
 import { BulkActions } from "@/features/list-items/components/BulkActions"
 
-export default function Home() {
+function ShoppingListContent() {
   const { lists, items: itemsState, settings } = useShoppingList()
 
   return (
-    <div className="mx-auto my-6 w-[90%] max-w-170 text-[#432000]">
+    <EmailLinkAuthGate>
       <ListSelectorBar
         storedLists={lists.storedLists}
         currentListId={lists.currentListId}
@@ -67,6 +68,10 @@ export default function Home() {
         onUnmarkAll={() => itemsState.markAllItems(false)}
         onMarkAll={() => itemsState.markAllItems(true)}
       />
-    </div>
+    </EmailLinkAuthGate>
   )
+}
+
+export default function Home() {
+  return <ShoppingListContent />
 }
