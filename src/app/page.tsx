@@ -1,10 +1,12 @@
 "use client"
 
 import Image from "next/image"
-import { ListSelectorBar } from "@/features/list-selector"
-import { SettingsModal } from "@/features/list-settings"
-import { BulkActions, ItemComposer, ItemsList } from "@/features/list-items"
-import { useShoppingList } from "@/features/shopping-core"
+import { useShoppingList } from "@/features/shopping-core/hooks/useShoppingList"
+import { ListSelectorBar } from "@/features/list-selector/components/ListSelectorBar"
+import { SettingsModal } from "@/features/list-settings/components/SettingsModal"
+import { ItemComposer } from "@/features/list-items/components/ItemComposer"
+import { ItemsList } from "@/features/list-items/components/ItemsList"
+import { BulkActions } from "@/features/list-items/components/BulkActions"
 
 export default function Home() {
   const { lists, items: itemsState, settings } = useShoppingList()

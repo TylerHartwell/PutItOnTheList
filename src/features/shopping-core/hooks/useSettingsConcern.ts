@@ -126,5 +126,3 @@ export function useSettingsConcern({ currentListId, storedLists, setCurrentListI
     settingsModalRef
   }
 }
-
-export type SettingsConcernState = ReturnType<typeof useSettingsConcern>

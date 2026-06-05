@@ -58,5 +58,3 @@ export function useListsConcern() {
     makeListIdFirst
   }
 }
-
-export type ListsConcernState = ReturnType<typeof useListsConcern>

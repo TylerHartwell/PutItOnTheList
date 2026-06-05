@@ -143,5 +143,3 @@ export function useItemsConcern(currentListId: string) {
     saveEditedItem
   }
 }
-
-export type ItemsConcernState = ReturnType<typeof useItemsConcern>
