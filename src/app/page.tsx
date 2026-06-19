@@ -9,7 +9,7 @@ import { ItemComposer } from "@/features/list-items/components/ItemComposer"
 import { ItemsList } from "@/features/list-items/components/ItemsList"
 import { BulkActions } from "@/features/list-items/components/BulkActions"
 
-function ShoppingListContent() {
+export default function Home() {
   const { lists, items: itemsState, settings } = useShoppingList()
 
   return (
@@ -26,7 +26,6 @@ function ShoppingListContent() {
         currentListNameInput={settings.currentListNameInput}
         newListNameInput={settings.newListNameInput}
         joinListIdInput={settings.joinListIdInput}
-        onClose={settings.closeSettingsModal}
         onCopyList={settings.copyList}
         onCurrentListNameChange={settings.setCurrentListNameInput}
         onSaveCurrentListName={settings.editListName}
@@ -35,7 +34,8 @@ function ShoppingListContent() {
         onCreateList={settings.createList}
         onJoinListIdChange={settings.setJoinListIdInput}
         onJoinList={settings.joinList}
-        settingsModalRef={settings.settingsModalRef as React.RefObject<HTMLDialogElement>}
+        isOpen={settings.isOpen}
+        setIsOpen={settings.setIsOpen}
       />
 
       <Image
@@ -70,8 +70,4 @@ function ShoppingListContent() {
       />
     </EmailLinkAuthGate>
   )
-}
-
-export default function Home() {
-  return <ShoppingListContent />
 }

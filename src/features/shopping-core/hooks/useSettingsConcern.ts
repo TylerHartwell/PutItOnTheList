@@ -1,4 +1,4 @@
-import { useRef, useState } from "react"
+import { useState } from "react"
 import { child, get, getDatabase, ref } from "firebase/database"
 import { vibrate } from "@/shared/utils/vibrate"
 import { normalizeText } from "@/shared/utils/text"
@@ -16,15 +16,13 @@ export function useSettingsConcern({ currentListId, storedLists, setCurrentListI
   const [currentListNameInput, setCurrentListNameInput] = useState("")
   const [newListNameInput, setNewListNameInput] = useState("")
   const [joinListIdInput, setJoinListIdInput] = useState("")
-  const settingsModalRef = useRef<HTMLDialogElement | null>(null)
+  const [isOpen, setIsOpen] = useState(false)
 
   function openSettingsModal() {
     setCurrentListNameInput(storedLists.find(list => list.listId === currentListId)?.listName ?? "")
-    settingsModalRef.current?.showModal()
-  }
-
-  function closeSettingsModal() {
-    settingsModalRef.current?.close()
+    setIsOpen(true)
+    // prevent scrolling while modal is open
+    document.body.style.overflow = "hidden"
   }
 
   function leaveList() {
@@ -41,7 +39,7 @@ export function useSettingsConcern({ currentListId, storedLists, setCurrentListI
 
     handleListsChange(nextLists)
     setCurrentListId(nextLists[0].listId)
-    closeSettingsModal()
+    setIsOpen(false)
     vibrate()
   }
 
@@ -61,7 +59,7 @@ export function useSettingsConcern({ currentListId, storedLists, setCurrentListI
 
       addListToStorage(listIdToJoin)
       setJoinListIdInput("")
-      closeSettingsModal()
+      setIsOpen(false)
       vibrate()
     } catch {
       setJoinListIdInput("")
@@ -76,7 +74,7 @@ export function useSettingsConcern({ currentListId, storedLists, setCurrentListI
     handleListsChange(nextLists)
     setCurrentListId(newListId)
     setNewListNameInput("")
-    closeSettingsModal()
+    setIsOpen(false)
     vibrate()
   }
 
@@ -105,7 +103,7 @@ export function useSettingsConcern({ currentListId, storedLists, setCurrentListI
     const nextLists = storedLists.map(list => (list.listId === currentListId ? { ...list, listName: trimmedName } : list))
 
     handleListsChange(nextLists)
-    closeSettingsModal()
+    setIsOpen(false)
     vibrate()
   }
 
@@ -117,12 +115,12 @@ export function useSettingsConcern({ currentListId, storedLists, setCurrentListI
     joinListIdInput,
     setJoinListIdInput,
     openSettingsModal,
-    closeSettingsModal,
     leaveList,
     joinList,
     createList,
     copyList,
     editListName,
-    settingsModalRef
+    isOpen,
+    setIsOpen
   }
 }
