@@ -1,13 +1,28 @@
-import { useEffect, useRef, useState } from "react"
-
+import { DialogHTMLAttributes, useEffect, useRef, useState } from "react"
+import ListJoinForm from "./ListJoinForm"
+import ListCreateForm from "./ListCreateForm"
+import ListEditForm from "./ListEditForm"
+import SettingsModalHeader from "./SettingsModalHeader"
+import { ModalDialog, ModalDialogRef } from "@/shared/components/ModalDialog"
+import type { ListMember } from "@/shared/types/shopping"
 import { SettingsButton } from "./SettingsButton"
 
-type SettingsModalProps = {
+function getMemberDisplayName(member: ListMember) {
+  const username = member.username.trim()
+  const uid = member.uid.trim()
+
+  if (!username || username === uid) {
+    return `user-${uid.slice(0, 6) || "unknown"}`
+  }
+
+  return username
+}
+
+type SettingsModalProps = DialogHTMLAttributes<HTMLDialogElement> & {
   currentListId: string
   currentListNameInput: string
   newListNameInput: string
   joinListIdInput: string
-  onClose: () => void
   onCopyList: () => Promise<boolean>
   onCurrentListNameChange: (value: string) => void
   onSaveCurrentListName: () => void
@@ -16,7 +31,13 @@ type SettingsModalProps = {
   onCreateList: () => void
   onJoinListIdChange: (value: string) => void
   onJoinList: () => Promise<void>
-  settingsModalRef: React.RefObject<HTMLDialogElement> | null
+  currentListMembers: ListMember[]
+  currentListOwnerUid: string
+  isCurrentUserOwner: boolean
+  onRemoveMember: (memberUid: string) => Promise<void>
+  onTransferOwnership: (nextOwnerUid: string) => Promise<void>
+  isOpen: boolean
+  setIsOpen: (value: boolean) => void
 }
 
 export function SettingsModal({
@@ -24,7 +45,6 @@ export function SettingsModal({
   currentListNameInput,
   newListNameInput,
   joinListIdInput,
-  onClose,
   onCopyList,
   onCurrentListNameChange,
   onSaveCurrentListName,
@@ -33,11 +53,19 @@ export function SettingsModal({
   onCreateList,
   onJoinListIdChange,
   onJoinList,
-  settingsModalRef
+  currentListMembers,
+  currentListOwnerUid,
+  isCurrentUserOwner,
+  onRemoveMember,
+  onTransferOwnership,
+  isOpen,
+  setIsOpen
 }: SettingsModalProps) {
   const [isHeaderElevated, setIsHeaderElevated] = useState(false)
+  const [isScrolledBottom, setIsScrolledBottom] = useState(false)
   const [copyStatus, setCopyStatus] = useState<"idle" | "success">("idle")
   const copyFeedbackTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const settingsModalRef = useRef<ModalDialogRef | null>(null)
 
   useEffect(() => {
     return () => {
@@ -46,6 +74,18 @@ export function SettingsModal({
       }
     }
   }, [])
+
+  function handleModalClose() {
+    unlockBodyScroll()
+  }
+
+  function unlockBodyScroll() {
+    document.body.style.overflow = "unset"
+  }
+
+  function closeSettingsModal() {
+    settingsModalRef.current?.close()
+  }
 
   async function handleCopyList() {
     const didCopy = await onCopyList()
@@ -65,135 +105,69 @@ export function SettingsModal({
   }
 
   return (
-    <dialog
+    <ModalDialog
       ref={settingsModalRef}
-      closedby="any"
-      className="w-full m-auto max-w-[min(--spacing(130),calc(100%-(--spacing(4))))] overflow-hidden rounded-xl border-2 border-[#252525] bg-[#fffdf8] shadow-[0_8px_20px_rgba(0,0,0,0.25)] backdrop:bg-black/25 backdrop:overflow-hidden backdrop:overscroll-contain"
+      onClose={handleModalClose}
+      isOpen={isOpen}
+      setIsOpen={setIsOpen}
+      isScrolledBottom={isScrolledBottom}
+      onScroll={event => {
+        setIsHeaderElevated(event.currentTarget.scrollTop > 0)
+        setIsScrolledBottom(event.currentTarget.scrollHeight - event.currentTarget.scrollTop <= event.currentTarget.clientHeight)
+      }}
     >
-      <div
-        className="relative max-h-[calc(100vh-40px)] overflow-y-auto px-3.5 pb-3.5"
-        onScroll={event => {
-          setIsHeaderElevated(event.currentTarget.scrollTop > 0)
-        }}
-      >
-        <div
-          className={`sticky top-0 z-10 -mx-3.5 flex items-center justify-between gap-2.5 bg-[#fffdf8] px-3.5 py-3.5 ${isHeaderElevated ? "shadow-[0_6px_12px_rgba(0,0,0,0.12)]" : "shadow-none"}`}
-        >
-          <h2 className="text-xl">List Settings</h2>
-          <SettingsButton className="size-10" onClick={onClose} aria-label="Close settings">
-            X
-          </SettingsButton>
-        </div>
+      <div className="relative flex flex-col gap-2">
+        <SettingsModalHeader isElevated={isHeaderElevated} closeSettingsModal={closeSettingsModal} />
 
-        <form
-          className=" border-t border-[#d8d8d8] pt-3"
-          onSubmit={event => {
-            event.preventDefault()
-            onSaveCurrentListName()
-          }}
-        >
-          <h3 className="mb-2.5 text-base">Current List</h3>
-          <span className="mb-1 block text-sm" id="current-list-id">
-            List Number
-          </span>
-          <div className="relative flex min-w-0 items-center gap-1.5">
-            <div
-              aria-labelledby="current-list-id"
-              className="m-0 min-w-0 flex-1 rounded-md border-2 border-transparent bg-[#dce1eb] p-2 text-[#626262] "
-            >
-              {currentListId}
-            </div>
-            <div className="relative shrink-0">
-              {copyStatus === "success" ? (
-                <div
-                  role="status"
-                  aria-live="polite"
-                  className="pointer-events-none absolute -top-9 left-1/2 -translate-x-1/2 rounded-md  px-2 py-1 text-xs text-[#252525] shadow-[0_4px_10px_rgba(0,0,0,0.18)]"
-                >
-                  Copied!
-                </div>
-              ) : null}
+        <ListEditForm
+          currentListId={currentListId}
+          currentListNameInput={currentListNameInput}
+          copyStatus={copyStatus}
+          onCurrentListNameChange={onCurrentListNameChange}
+          onSaveCurrentListName={onSaveCurrentListName}
+          onLeaveList={onLeaveList}
+          handleCopyList={handleCopyList}
+        />
 
-              <SettingsButton type="button" onClick={() => void handleCopyList()}>
-                Copy
-              </SettingsButton>
-            </div>
-          </div>
+        <ListCreateForm onCreateList={onCreateList} newListNameInput={newListNameInput} onNewListNameChange={onNewListNameChange} />
 
-          <label className="mb-1 mt-2 block text-sm" htmlFor="current-list-name">
-            Local List Name
-          </label>
-          <div className="flex min-w-0 items-center gap-1.5">
-            <input
-              id="current-list-name"
-              className="m-0 min-w-0 flex-1 rounded-md border-2 border-transparent bg-[#dce1eb] p-2 outline-none focus:border-black"
-              placeholder="Optional"
-              autoComplete="off"
-              value={currentListNameInput}
-              onChange={event => onCurrentListNameChange(event.target.value)}
-            />
-            <SettingsButton type="submit">Save</SettingsButton>
-          </div>
+        <ListJoinForm onJoinList={onJoinList} joinListIdInput={joinListIdInput} onJoinListIdChange={onJoinListIdChange} />
 
-          <div className="mt-2.5 flex justify-center">
-            <SettingsButton
-              type="button"
-              className=" bg-[#8f2a2a] hover:text-[#8f2a2a] active:text-[#8f2a2a] active:outline-[#8f2a2a] "
-              onClick={onLeaveList}
-            >
-              Leave List
-            </SettingsButton>
-          </div>
-        </form>
+        <section className="mt-3 border-t border-[#d8d8d8] p-2">
+          <h3 className="mb-2.5 text-base">Members</h3>
+          <ul className="flex flex-col gap-1.5">
+            {currentListMembers.map(member => {
+              const isOwner = member.uid === currentListOwnerUid
 
-        <form
-          className="mt-3 border-t border-[#d8d8d8] pt-3"
-          onSubmit={event => {
-            event.preventDefault()
-            onCreateList()
-          }}
-        >
-          <h3 className="mb-2.5 text-base">Create New List</h3>
-          <label className="mb-1 block text-sm" htmlFor="new-list-name">
-            Local List Name
-          </label>
-          <div className="flex min-w-0 items-center gap-1.5">
-            <input
-              id="new-list-name"
-              className="m-0 min-w-0 flex-1 rounded-md border-2 border-transparent bg-[#dce1eb] p-2 outline-none focus:border-black"
-              placeholder="Optional"
-              autoComplete="off"
-              value={newListNameInput}
-              onChange={event => onNewListNameChange(event.target.value)}
-            />
-            <SettingsButton type="submit">Create</SettingsButton>
-          </div>
-        </form>
+              return (
+                <li key={member.uid} className="flex items-center justify-between gap-2 rounded-md bg-[#dce1eb] p-2">
+                  <div className="min-w-0">
+                    <p className="truncate text-sm">{getMemberDisplayName(member)}</p>
+                  </div>
 
-        <form
-          className="mt-3 border-t border-[#d8d8d8] pt-3"
-          onSubmit={event => {
-            event.preventDefault()
-            void onJoinList()
-          }}
-        >
-          <h3 className="mb-2.5 text-base">Join Existing List</h3>
-          <label className="mb-1 block text-sm" htmlFor="join-list-id">
-            List Number
-          </label>
-          <div className="flex min-w-0 items-center gap-1.5">
-            <input
-              id="join-list-id"
-              className="m-0 min-w-0 flex-1 rounded-md border-2 border-transparent bg-[#dce1eb] p-2 outline-none focus:border-black"
-              placeholder="Paste list number"
-              autoComplete="off"
-              value={joinListIdInput}
-              onChange={event => onJoinListIdChange(event.target.value)}
-            />
-            <SettingsButton type="submit">Join</SettingsButton>
-          </div>
-        </form>
+                  <div className="flex shrink-0 items-center gap-1.5">
+                    {isOwner ? <span className="rounded-md  px-2 py-1 text-xs">Owner</span> : null}
+                    {isCurrentUserOwner && !isOwner ? (
+                      <>
+                        <SettingsButton type="button" onClick={() => void onTransferOwnership(member.uid)}>
+                          Make Owner
+                        </SettingsButton>
+                        <SettingsButton
+                          type="button"
+                          className="bg-[#8f2a2a] hover:text-[#8f2a2a] active:text-[#8f2a2a] active:outline-[#8f2a2a]"
+                          onClick={() => void onRemoveMember(member.uid)}
+                        >
+                          Remove
+                        </SettingsButton>
+                      </>
+                    ) : null}
+                  </div>
+                </li>
+              )
+            })}
+          </ul>
+        </section>
       </div>
-    </dialog>
+    </ModalDialog>
   )
 }

@@ -1,0 +1,30 @@
+{
+  "rules": {
+    "usernames": {
+      "$usernameKey": {
+        ".read": "auth != null",
+        ".write": "auth != null && ((!data.exists() && newData.val() === auth.uid) || (data.val() === auth.uid && newData.val() === auth.uid) || (data.val() === auth.uid && !newData.exists()))"
+      }
+    },
+    "lists": {
+      "$listId": {
+        ".read": "auth != null && root.child('lists').child($listId).child('members').child(auth.uid).exists()",
+        ".write": "auth != null && ((!data.exists() && newData.child('owner').val() === auth.uid && newData.child('members').child(auth.uid).val() === true) || (data.exists() && root.child('lists').child($listId).child('members').child(auth.uid).exists()))",
+        "owner": {
+          ".write": "auth != null && ((!data.exists() && newData.val() === auth.uid) || (data.exists() && data.val() === auth.uid && root.child('lists').child($listId).child('members').child(newData.val()).exists()))"
+        },
+        "members": {
+          "$uid": {
+            ".write": "auth != null && ((root.child('lists').child($listId).child('owner').val() === auth.uid && (newData.exists() || $uid !== auth.uid || !root.child('lists').child($listId).child('members').child($uid).exists())) || (auth.uid === $uid && !newData.exists()) || (auth.uid === $uid && !data.exists() && newData.exists()))"
+          }
+        }
+      }
+    },
+    "users": {
+      "$uid": {
+        ".read": "auth != null && auth.uid === $uid",
+        ".write": "auth != null && auth.uid === $uid"
+      }
+    }
+  }
+}

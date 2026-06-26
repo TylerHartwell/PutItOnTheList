@@ -4,6 +4,8 @@ import { useEffect, useState } from "react"
 import { LISTS_KEY, loadStorageLists, saveToLocalStorage } from "../utils/storage"
 import { StoredList } from "@/shared/types/shopping"
 
+//TODO: delete file
+
 export function useListsConcern() {
   const [storedLists, setStoredLists] = useState<StoredList[]>([])
   const [currentListId, setCurrentListId] = useState("")

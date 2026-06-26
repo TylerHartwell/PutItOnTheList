@@ -96,7 +96,9 @@ function safeParseStoredLists(raw: string | null): StoredList[] {
 
       validLists.push({
         listId: maybeListId,
-        listName: typeof maybeListName === "string" ? maybeListName : ""
+        listName: typeof maybeListName === "string" ? maybeListName : "",
+        ownerUid: typeof (entry as { ownerUid?: unknown }).ownerUid === "string" ? (entry as { ownerUid: string }).ownerUid : "",
+        lastEditedBy: typeof (entry as { lastEditedBy?: unknown }).lastEditedBy === "string" ? (entry as { lastEditedBy: string }).lastEditedBy : ""
       })
     }
 
@@ -107,13 +109,25 @@ function safeParseStoredLists(raw: string | null): StoredList[] {
 }
 
 export function generateListId(): string {
-  return String(Date.now())
+  const alphabet = "0123456789"
+  const idLength = 8
+
+  if (typeof crypto !== "undefined" && typeof crypto.getRandomValues === "function") {
+    const randomBytes = new Uint8Array(idLength)
+    crypto.getRandomValues(randomBytes)
+
+    return Array.from(randomBytes, byte => alphabet[byte % alphabet.length]).join("")
+  }
+
+  return Array.from({ length: idLength }, () => alphabet[Math.floor(Math.random() * alphabet.length)]).join("")
 }
 
 function fromLegacyToStoredLists(prunedLegacyListNames: Record<string, string>): StoredList[] {
   return Object.entries(prunedLegacyListNames).map(([listId, listName]) => ({
     listId,
-    listName
+    listName,
+    ownerUid: "",
+    lastEditedBy: ""
   }))
 }
 
@@ -152,7 +166,7 @@ export function loadStorageLists() {
   let storageLists = safeParseStoredLists(storage.getItem(LISTS_KEY) ?? null)
 
   if (storageLists.length === 0) {
-    storageLists = saveToLocalStorage(LISTS_KEY, [{ listId: generateListId(), listName: "" } as StoredList])
+    storageLists = saveToLocalStorage(LISTS_KEY, [{ listId: generateListId(), listName: "", ownerUid: "", lastEditedBy: "" } as StoredList])
   }
 
   return storageLists
@@ -180,7 +194,7 @@ export function addListToStorage(listIdToJoin: string) {
     return
   }
 
-  const nextLists = [{ listId: listIdToJoin, listName: "" }, ...existingLists]
+  const nextLists = [{ listId: listIdToJoin, listName: "", ownerUid: "", lastEditedBy: "" }, ...existingLists]
 
   saveToLocalStorage(LISTS_KEY, nextLists)
 }
