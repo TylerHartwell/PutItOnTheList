@@ -21,6 +21,67 @@ import { useUserProfile } from "./useUserProfile"
 const PENDING_EMAIL_KEY = "putitonthelist.pendingEmailForSignIn"
 const AUTH_UNAVAILABLE_MESSAGE = firebaseAuthUnavailableMessage
 const FIREBASE_AUTH_QUERY_KEYS = ["apiKey", "oobCode", "mode", "lang", "continueUrl", "continue_url"] as const
+const NESTED_LINK_QUERY_KEYS = ["continueUrl", "continue_url", "link", "deep_link_id", "url"] as const
+
+function decodeHtmlEntities(value: string) {
+  return value.replaceAll("&amp;", "&")
+}
+
+function normalizePastedLinkInput(rawInput: string) {
+  const withDecodedEntities = decodeHtmlEntities(rawInput).trim()
+  const match = withDecodedEntities.match(/https?:\/\/\S+/i)
+  const urlLikeValue = match ? match[0] : withDecodedEntities
+
+  return urlLikeValue.replace(/^[<\"']+|[>\"']+$/g, "")
+}
+
+function resolveEmailSignInLink(rawInput: string, firebaseAuth: NonNullable<typeof auth>) {
+  const initialCandidate = normalizePastedLinkInput(rawInput)
+  if (!initialCandidate) {
+    return ""
+  }
+
+  const urlsToInspect: string[] = [initialCandidate]
+  const visited = new Set<string>()
+
+  while (urlsToInspect.length > 0) {
+    const current = urlsToInspect.shift()
+    if (!current || visited.has(current)) {
+      continue
+    }
+
+    visited.add(current)
+
+    if (isSignInWithEmailLink(firebaseAuth, current)) {
+      return current
+    }
+
+    try {
+      const parsed = new URL(current)
+
+      for (const nestedKey of NESTED_LINK_QUERY_KEYS) {
+        const nestedValue = parsed.searchParams.get(nestedKey)
+        if (nestedValue) {
+          urlsToInspect.push(decodeHtmlEntities(nestedValue))
+        }
+      }
+
+      if (parsed.hash) {
+        const hashParams = new URLSearchParams(parsed.hash.replace(/^#/, ""))
+        for (const nestedKey of NESTED_LINK_QUERY_KEYS) {
+          const nestedHashValue = hashParams.get(nestedKey)
+          if (nestedHashValue) {
+            urlsToInspect.push(decodeHtmlEntities(nestedHashValue))
+          }
+        }
+      }
+    } catch {
+      // Ignore malformed URL segments and keep searching nested values.
+    }
+  }
+
+  return ""
+}
 
 function clearFirebaseAuthQueryParamsFromCurrentUrl() {
   if (typeof window === "undefined") {
@@ -80,6 +141,11 @@ function parseEmailHintFromUrl(rawUrl: string) {
 }
 
 function getFriendlyError(error: unknown) {
+  const errorCode = getErrorCode(error)
+  if (errorCode === "auth/invalid-action-code") {
+    return "This sign-in link is invalid, expired, or already used. Request a new email link and paste it here before opening it in another browser."
+  }
+
   if (error instanceof Error && error.message) {
     return error.message
   }
@@ -334,12 +400,13 @@ export function useEmailLinkAuth() {
     setErrorMessage("")
     setStatusMessage("")
 
-    if (!isSignInWithEmailLink(firebaseAuth, trimmedLink)) {
+    const resolvedSignInLink = resolveEmailSignInLink(trimmedLink, firebaseAuth)
+    if (!resolvedSignInLink) {
       setErrorMessage("That link does not look like a valid email sign-in link.")
       return
     }
 
-    await completeSignInFromLink(trimmedLink)
+    await completeSignInFromLink(resolvedSignInLink)
   }
 
   async function handleSignOut() {

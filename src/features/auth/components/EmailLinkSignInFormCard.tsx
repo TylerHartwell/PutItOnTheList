@@ -65,8 +65,8 @@ export function EmailLinkSignInFormCard({
         Receive a one-time link to your inbox. Open that link on this device to finish signing in.
       </p>
       <p className="mt-2 text-xs leading-5 text-[#8f6f50]">
-        iPhone note: Home Screen web apps and Safari may not share sign-in storage. If the link opens in Safari, finish sign-in there and continue
-        using Safari for that session.
+        iPhone note: Home Screen web apps and Safari may not share sign-in storage. If needed, copy the full sign-in link from the email message and
+        paste it below before opening it in Safari.
       </p>
 
       <button
@@ -147,7 +147,7 @@ export function EmailLinkSignInFormCard({
       <div className="mt-6 border-t border-[#eadfcb] pt-5">
         <p className="text-xs font-medium uppercase tracking-[0.08em] text-[#8f6f50]">Manual fallback</p>
         <p className="mt-2 text-xs leading-5 text-[#8f6f50]">
-          If email opens in Safari, copy the full link from the address bar, paste it below in this Home Screen app, then continue.
+          Paste the full sign-in link from your email message. A link opened in another browser can be consumed and may not work here.
         </p>
 
         <form
