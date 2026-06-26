@@ -1,6 +1,9 @@
 {
   "name": "PutItOnTheList - Shopping List",
   "short_name": "PutItOnTheList",
+  "id": "/",
+  "start_url": "/",
+  "scope": "/",
   "icons": [
     {
       "src": "favicons/android-chrome-144x144.png",

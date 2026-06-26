@@ -17,15 +17,20 @@ export function EmailLinkAuthGate({ children }: EmailLinkAuthGateProps) {
     user,
     emailInput,
     setEmailInput,
+    manualLinkInput,
+    setManualLinkInput,
     loading,
     sending,
     completing,
+    googleSigningIn,
     statusMessage,
     errorMessage,
     isSignInLink,
     hasAuthConfig,
     account,
     submitEmailLink,
+    submitGoogleSignIn,
+    submitManualSignInLink,
     handleSignOut
   } = useEmailLinkAuth()
 
@@ -38,9 +43,14 @@ export function EmailLinkAuthGate({ children }: EmailLinkAuthGateProps) {
       <EmailLinkSignInView
         emailInput={emailInput}
         onEmailInputChange={setEmailInput}
+        onSubmitGoogleSignIn={submitGoogleSignIn}
+        manualLinkInput={manualLinkInput}
+        onManualLinkInputChange={setManualLinkInput}
         onSubmitEmailLink={submitEmailLink}
+        onSubmitManualSignInLink={submitManualSignInLink}
         sending={sending}
         completing={completing}
+        googleSigningIn={googleSigningIn}
         statusMessage={statusMessage}
         errorMessage={errorMessage}
         isSignInLink={isSignInLink}

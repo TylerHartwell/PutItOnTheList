@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { LogOut, Settings } from "lucide-react"
+import { LogOut, Settings, X } from "lucide-react"
 import type { UserAccountState } from "../hooks/useUserProfile"
 
 type EmailLinkSignedInBarProps = {
@@ -17,15 +17,7 @@ export function EmailLinkSignedInBar({ statusMessage, errorMessage, onSignOut, a
 
   return (
     <div className="mx-auto py-1 w-[90%] max-w-120 text-[#432000]">
-      <div className="mb-3 flex items-center justify-between gap-2 rounded-2xl ">
-        <button
-          type="button"
-          onClick={onSignOut}
-          className="inline-flex items-center rounded-2xl border border-[#d9c8ab] bg-white px-3 py-1.5 text-sm font-medium text-[#432000] transition hover:border-[#8a6d45] hover:bg-[#fff9ef]"
-        >
-          <LogOut className="mr-2 h-4 w-4" />
-          Sign out
-        </button>
+      <div className="mb-3 flex items-center justify-end gap-2 rounded-2xl ">
         <button
           type="button"
           onClick={() => setIsAccountSettingsOpen(currentValue => !currentValue)}
@@ -40,9 +32,20 @@ export function EmailLinkSignedInBar({ statusMessage, errorMessage, onSignOut, a
 
       {isAccountSettingsOpen ? (
         <div className="mb-3 rounded-3xl border border-[#d9c8ab] bg-[#fff9ef] p-4 shadow-[0_12px_32px_rgba(67,32,0,0.08)]">
-          <div className="mb-3">
-            <p className="text-xs font-medium uppercase tracking-[0.22em] text-[#8a6d45]">Account settings</p>
-            <p className="mt-1 text-sm leading-6 text-[#5f4a31]">Set a unique username for this Firebase account.</p>
+          <div className="mb-3 flex items-start justify-between gap-3">
+            <div>
+              <p className="text-xs font-medium uppercase tracking-[0.22em] text-[#8a6d45]">Account settings</p>
+              <p className="mt-1 text-sm leading-6 text-[#5f4a31]">Set a unique username for this Firebase account.</p>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setIsAccountSettingsOpen(false)}
+              className="inline-flex size-10 shrink-0 items-center justify-center rounded-2xl border border-[#d9c8ab] bg-white text-[#432000] transition hover:border-[#8a6d45] hover:bg-[#fff4de]"
+              aria-label="Close account settings"
+            >
+              <X className="h-4 w-4" />
+            </button>
           </div>
 
           <div className="grid gap-3">
@@ -81,6 +84,15 @@ export function EmailLinkSignedInBar({ statusMessage, errorMessage, onSignOut, a
 
               <p className="text-xs leading-5 text-[#7f6545]">Use 6-18 characters with lowercase letters, numbers, or underscores.</p>
             </div>
+
+            <button
+              type="button"
+              onClick={onSignOut}
+              className="inline-flex items-center justify-center self-start rounded-2xl border border-[#d9c8ab] bg-white px-4 py-2.5 text-sm font-medium text-[#432000] transition hover:border-[#8a6d45] hover:bg-[#fff4de]"
+            >
+              <LogOut className="mr-2 h-4 w-4" />
+              Sign out
+            </button>
 
             {account.statusMessage ? <p className="rounded-2xl bg-[#eef5ef] px-4 py-3 text-sm text-[#2f5a3f]">{account.statusMessage}</p> : null}
             {account.errorMessage ? <p className="rounded-2xl bg-[#ffe9e4] px-4 py-3 text-sm text-[#9d3d27]">{account.errorMessage}</p> : null}

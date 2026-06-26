@@ -1,12 +1,16 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useCallback, useEffect, useState } from "react"
 import {
   browserLocalPersistence,
+  getRedirectResult,
+  GoogleAuthProvider,
   isSignInWithEmailLink,
   onAuthStateChanged,
   sendSignInLinkToEmail,
   setPersistence,
+  signInWithPopup,
+  signInWithRedirect,
   signInWithEmailLink,
   signOut,
   type User
@@ -17,6 +21,39 @@ import { useUserProfile } from "./useUserProfile"
 const PENDING_EMAIL_KEY = "putitonthelist.pendingEmailForSignIn"
 const AUTH_UNAVAILABLE_MESSAGE = firebaseAuthUnavailableMessage
 
+function parseEmailHintFromUrl(rawUrl: string) {
+  const urlsToInspect: string[] = [rawUrl]
+  const visited = new Set<string>()
+
+  while (urlsToInspect.length > 0) {
+    const current = urlsToInspect.shift()
+    if (!current || visited.has(current)) {
+      continue
+    }
+
+    visited.add(current)
+
+    try {
+      const parsed = new URL(current)
+      const directEmailHint = parsed.searchParams.get("emailHint")
+      if (directEmailHint) {
+        return decodeURIComponent(directEmailHint)
+      }
+
+      for (const nestedKey of ["continueUrl", "continue_url", "link", "deep_link_id"]) {
+        const nestedValue = parsed.searchParams.get(nestedKey)
+        if (nestedValue) {
+          urlsToInspect.push(nestedValue)
+        }
+      }
+    } catch {
+      // Ignore malformed URL segments and continue scanning fallbacks.
+    }
+  }
+
+  return ""
+}
+
 function getFriendlyError(error: unknown) {
   if (error instanceof Error && error.message) {
     return error.message
@@ -25,17 +62,77 @@ function getFriendlyError(error: unknown) {
   return "Something went wrong while handling the sign-in link."
 }
 
+function getErrorCode(error: unknown) {
+  if (typeof error === "object" && error !== null && "code" in error) {
+    const code = (error as { code?: unknown }).code
+    if (typeof code === "string") {
+      return code
+    }
+  }
+
+  return ""
+}
+
 export function useEmailLinkAuth() {
   const firebaseAuth = auth
   const [user, setUser] = useState<User | null>(null)
   const [emailInput, setEmailInput] = useState("")
+  const [manualLinkInput, setManualLinkInput] = useState("")
   const [loading, setLoading] = useState(() => Boolean(firebaseAuth))
   const [sending, setSending] = useState(false)
   const [completing, setCompleting] = useState(false)
+  const [googleSigningIn, setGoogleSigningIn] = useState(false)
   const [statusMessage, setStatusMessage] = useState("")
   const [errorMessage, setErrorMessage] = useState(() => (firebaseAuth ? "" : AUTH_UNAVAILABLE_MESSAGE))
   const [isSignInLink, setIsSignInLink] = useState(false)
   const account = useUserProfile(user)
+
+  const completeSignInFromLink = useCallback(
+    async (signInUrl: string, preferredEmail = "") => {
+      if (!firebaseAuth) {
+        setErrorMessage(AUTH_UNAVAILABLE_MESSAGE)
+        return false
+      }
+
+      if (typeof window === "undefined") {
+        return false
+      }
+
+      const storedEmail = window.localStorage.getItem(PENDING_EMAIL_KEY) ?? ""
+      const hintedEmail = parseEmailHintFromUrl(signInUrl)
+      const emailToUse = preferredEmail.trim() || storedEmail || hintedEmail
+
+      if (!emailToUse) {
+        setStatusMessage("Enter the email address you used to request the link.")
+        return false
+      }
+
+      setErrorMessage("")
+      setEmailInput(emailToUse)
+      setCompleting(true)
+
+      try {
+        await setPersistence(firebaseAuth, browserLocalPersistence)
+        const credential = await signInWithEmailLink(firebaseAuth, emailToUse, signInUrl)
+        window.localStorage.removeItem(PENDING_EMAIL_KEY)
+
+        if (isSignInWithEmailLink(firebaseAuth, window.location.href)) {
+          window.history.replaceState({}, document.title, window.location.pathname)
+        }
+
+        setUser(credential.user)
+        setManualLinkInput("")
+        setStatusMessage("")
+        return true
+      } catch (error) {
+        setErrorMessage(getFriendlyError(error))
+        return false
+      } finally {
+        setCompleting(false)
+      }
+    },
+    [firebaseAuth]
+  )
 
   useEffect(() => {
     if (!firebaseAuth) {
@@ -68,47 +165,85 @@ export function useEmailLinkAuth() {
       }
 
       setIsSignInLink(true)
+      await completeSignInFromLink(currentUrl)
 
-      const storedEmail = window.localStorage.getItem(PENDING_EMAIL_KEY) ?? ""
-      if (!storedEmail) {
-        setStatusMessage("Enter the email address you used to request the link.")
+      if (!isCancelled) {
         setLoading(false)
-        return
       }
+    }
 
-      setEmailInput(storedEmail)
-      setCompleting(true)
-
+    const restoreGoogleRedirectResult = async () => {
       try {
-        await setPersistence(firebaseAuth, browserLocalPersistence)
-        const credential = await signInWithEmailLink(firebaseAuth, storedEmail, currentUrl)
-        window.localStorage.removeItem(PENDING_EMAIL_KEY)
-        window.history.replaceState({}, document.title, window.location.pathname)
+        const redirectResult = await getRedirectResult(firebaseAuth)
 
-        if (!isCancelled) {
-          setUser(credential.user)
-          setStatusMessage("")
+        if (!redirectResult || isCancelled) {
+          return
         }
+
+        setUser(redirectResult.user)
+        setStatusMessage("")
+        setErrorMessage("")
       } catch (error) {
         if (!isCancelled) {
           setErrorMessage(getFriendlyError(error))
-        }
-      } finally {
-        if (!isCancelled) {
-          setCompleting(false)
-          setLoading(false)
         }
       }
     }
 
     void setPersistence(firebaseAuth, browserLocalPersistence).catch(() => {})
+    void restoreGoogleRedirectResult()
     void completeLinkIfPresent()
 
     return () => {
       isCancelled = true
       unsubscribe()
     }
-  }, [firebaseAuth])
+  }, [firebaseAuth, completeSignInFromLink])
+
+  async function submitGoogleSignIn() {
+    if (!firebaseAuth) {
+      setErrorMessage(AUTH_UNAVAILABLE_MESSAGE)
+      return
+    }
+
+    setErrorMessage("")
+    setStatusMessage("")
+    setGoogleSigningIn(true)
+
+    try {
+      await setPersistence(firebaseAuth, browserLocalPersistence)
+      const provider = new GoogleAuthProvider()
+      provider.setCustomParameters({
+        prompt: "select_account"
+      })
+
+      await signInWithPopup(firebaseAuth, provider)
+    } catch (error) {
+      const errorCode = getErrorCode(error)
+      const shouldUseRedirectFallback =
+        errorCode === "auth/popup-blocked" ||
+        errorCode === "auth/operation-not-supported-in-this-environment" ||
+        errorCode === "auth/web-storage-unsupported"
+
+      if (shouldUseRedirectFallback) {
+        try {
+          const provider = new GoogleAuthProvider()
+          provider.setCustomParameters({
+            prompt: "select_account"
+          })
+          await signInWithRedirect(firebaseAuth, provider)
+          return
+        } catch (redirectError) {
+          setErrorMessage(getFriendlyError(redirectError))
+          return
+        }
+      }
+
+      setErrorMessage(getFriendlyError(error))
+    } finally {
+      setGoogleSigningIn(false)
+    }
+  }
 
   async function submitEmailLink() {
     if (!firebaseAuth) {
@@ -133,18 +268,15 @@ export function useEmailLinkAuth() {
       }
 
       const currentUrl = window.location.href
+      const actionUrl = new URL(`${window.location.origin}${window.location.pathname}`)
+      actionUrl.searchParams.set("emailHint", encodeURIComponent(trimmedEmail))
       const actionCodeSettings = {
-        url: `${window.location.origin}${window.location.pathname}`,
+        url: actionUrl.toString(),
         handleCodeInApp: true
       }
 
       if (isSignInWithEmailLink(firebaseAuth, currentUrl)) {
-        setCompleting(true)
-        const credential = await signInWithEmailLink(firebaseAuth, trimmedEmail, currentUrl)
-        window.localStorage.removeItem(PENDING_EMAIL_KEY)
-        window.history.replaceState({}, document.title, window.location.pathname)
-        setUser(credential.user)
-        setStatusMessage("")
+        await completeSignInFromLink(currentUrl, trimmedEmail)
         return
       }
 
@@ -160,6 +292,29 @@ export function useEmailLinkAuth() {
       setSending(false)
       setCompleting(false)
     }
+  }
+
+  async function submitManualSignInLink() {
+    if (!firebaseAuth) {
+      setErrorMessage(AUTH_UNAVAILABLE_MESSAGE)
+      return
+    }
+
+    const trimmedLink = manualLinkInput.trim()
+    if (!trimmedLink) {
+      setErrorMessage("Paste the email sign-in link first.")
+      return
+    }
+
+    setErrorMessage("")
+    setStatusMessage("")
+
+    if (!isSignInWithEmailLink(firebaseAuth, trimmedLink)) {
+      setErrorMessage("That link does not look like a valid email sign-in link.")
+      return
+    }
+
+    await completeSignInFromLink(trimmedLink)
   }
 
   async function handleSignOut() {
@@ -186,15 +341,20 @@ export function useEmailLinkAuth() {
     user,
     emailInput,
     setEmailInput,
+    manualLinkInput,
+    setManualLinkInput,
     loading,
     sending,
     completing,
+    googleSigningIn,
     statusMessage,
     errorMessage,
     isSignInLink,
     hasAuthConfig: firebaseAuthReady,
     account,
     submitEmailLink,
+    submitGoogleSignIn,
+    submitManualSignInLink,
     handleSignOut
   }
 }

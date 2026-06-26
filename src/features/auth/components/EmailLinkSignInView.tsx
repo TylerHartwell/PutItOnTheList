@@ -6,9 +6,14 @@ import { EmailLinkSignInHeroPanel } from "./EmailLinkSignInHeroPanel"
 type EmailLinkSignInViewProps = {
   emailInput: string
   onEmailInputChange: (value: string) => void
+  onSubmitGoogleSignIn: () => void
+  manualLinkInput: string
+  onManualLinkInputChange: (value: string) => void
   onSubmitEmailLink: () => void
+  onSubmitManualSignInLink: () => void
   sending: boolean
   completing: boolean
+  googleSigningIn: boolean
   statusMessage: string
   errorMessage: string
   isSignInLink: boolean
@@ -18,9 +23,14 @@ type EmailLinkSignInViewProps = {
 export function EmailLinkSignInView({
   emailInput,
   onEmailInputChange,
+  onSubmitGoogleSignIn,
+  manualLinkInput,
+  onManualLinkInputChange,
   onSubmitEmailLink,
+  onSubmitManualSignInLink,
   sending,
   completing,
+  googleSigningIn,
   statusMessage,
   errorMessage,
   isSignInLink,
@@ -37,9 +47,14 @@ export function EmailLinkSignInView({
           <EmailLinkSignInFormCard
             emailInput={emailInput}
             onEmailInputChange={onEmailInputChange}
+            onSubmitGoogleSignIn={onSubmitGoogleSignIn}
+            manualLinkInput={manualLinkInput}
+            onManualLinkInputChange={onManualLinkInputChange}
             onSubmitEmailLink={onSubmitEmailLink}
+            onSubmitManualSignInLink={onSubmitManualSignInLink}
             sending={sending}
             completing={completing}
+            googleSigningIn={googleSigningIn}
             statusMessage={statusMessage}
             errorMessage={errorMessage}
             isSignInLink={isSignInLink}

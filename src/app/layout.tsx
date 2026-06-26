@@ -12,6 +12,11 @@ export const metadata: Metadata = {
   title: "Put It On The List",
   description: "Collaborative shopping list manager",
   manifest: "/site.webmanifest",
+  appleWebApp: {
+    capable: true,
+    title: "PutItOnTheList",
+    statusBarStyle: "default"
+  },
   icons: {
     icon: [
       { url: "/favicons/favicon.ico" },
