@@ -1,22 +1,22 @@
+import { type User } from "firebase/auth"
 import { useItemsConcern } from "./useItemsConcern"
-import { useListsConcern } from "./useListsConcern"
+import { useUserLists } from "./useUserLists"
 import { useSettingsConcern } from "./useSettingsConcern"
 
-export function useShoppingList() {
-  const listsConcern = useListsConcern()
-  const items = useItemsConcern(listsConcern.currentListId)
+export function useShoppingList(user: User | null, activeUsername: string) {
+  const userLists = useUserLists(user, activeUsername)
+  const items = useItemsConcern(user, userLists.currentListId, activeUsername)
   const settings = useSettingsConcern({
-    currentListId: listsConcern.currentListId,
-    storedLists: listsConcern.storedLists,
-    setCurrentListId: listsConcern.setCurrentListId,
-    handleListsChange: listsConcern.handleListsChange
+    userLists
   })
 
   return {
     lists: {
-      storedLists: listsConcern.storedLists,
-      currentListId: listsConcern.currentListId,
-      makeListIdFirst: listsConcern.makeListIdFirst
+      storedLists: userLists.storedLists,
+      currentListId: userLists.currentListId,
+      makeListIdFirst: userLists.makeListIdFirst,
+      isLoading: userLists.isLoading,
+      currentListLastEditedBy: userLists.currentListLastEditedBy
     },
     items,
     settings

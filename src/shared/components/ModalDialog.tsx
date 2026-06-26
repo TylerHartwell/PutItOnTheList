@@ -144,7 +144,7 @@ export const ModalDialog = function ({
         // Custom properties
         "[--backdrop-bg-color-open:rgb(0_0_0/75%)] [--backdrop-bg-color-closed:rgb(0_0_0/0%)] [--animation-duration:150ms] [--animation-easing:ease-in-out]",
         // Base layout
-        "relative m-auto   max-w-[min(--spacing(130),calc(100%-(--spacing(4))))] border-4 overscroll-contain",
+        "m-auto max-w-[min(--spacing(130),calc(100%-(--spacing(4))))] border-4 overscroll-contain",
         // Dialog visual states
         `motion-safe:opacity-0 motion-safe:open:opacity-100 starting:open:opacity-0 shadow-[0_8px_20px_rgba(0,0,0,0.25)] ${!isScrolledBottom && "shadow-[0_8px_20px_rgba(0,0,0,0.25),inset_0px_-20px_20px_-5px_rgba(0,0,0,0.25)]"}`,
         // Backdrop visual states

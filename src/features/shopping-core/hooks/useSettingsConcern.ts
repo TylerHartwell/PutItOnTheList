@@ -1,32 +1,27 @@
 import { useState } from "react"
-import { child, get, getDatabase, ref } from "firebase/database"
 import { vibrate } from "@/shared/utils/vibrate"
 import { normalizeText } from "@/shared/utils/text"
-import { addListToStorage, generateListId } from "../utils/storage"
-import { StoredList } from "@/shared/types/shopping"
+import type { useUserLists } from "./useUserLists"
 
 export type SettingsConcernParams = {
-  currentListId: string
-  storedLists: StoredList[]
-  setCurrentListId: (value: string) => void
-  handleListsChange: (nextLists: StoredList[]) => void
+  userLists: ReturnType<typeof useUserLists>
 }
 
-export function useSettingsConcern({ currentListId, storedLists, setCurrentListId, handleListsChange }: SettingsConcernParams) {
+export function useSettingsConcern({ userLists }: SettingsConcernParams) {
   const [currentListNameInput, setCurrentListNameInput] = useState("")
   const [newListNameInput, setNewListNameInput] = useState("")
   const [joinListIdInput, setJoinListIdInput] = useState("")
   const [isOpen, setIsOpen] = useState(false)
 
   function openSettingsModal() {
-    setCurrentListNameInput(storedLists.find(list => list.listId === currentListId)?.listName ?? "")
+    setCurrentListNameInput(userLists.storedLists.find(list => list.listId === userLists.currentListId)?.listName ?? "")
     setIsOpen(true)
     // prevent scrolling while modal is open
     document.body.style.overflow = "hidden"
   }
 
   function leaveList() {
-    if (!currentListId) {
+    if (!userLists.currentListId) {
       return
     }
 
@@ -34,11 +29,7 @@ export function useSettingsConcern({ currentListId, storedLists, setCurrentListI
       return
     }
 
-    const remainingLists = storedLists.filter(list => list.listId !== currentListId)
-    const nextLists = remainingLists.length > 0 ? remainingLists : [{ listId: generateListId(), listName: "" }]
-
-    handleListsChange(nextLists)
-    setCurrentListId(nextLists[0].listId)
+    void userLists.leaveList(userLists.currentListId)
     setIsOpen(false)
     vibrate()
   }
@@ -50,14 +41,7 @@ export function useSettingsConcern({ currentListId, storedLists, setCurrentListI
     }
 
     try {
-      const dbRef = ref(getDatabase())
-      const snapshot = await get(child(dbRef, listIdToJoin))
-      if (!snapshot.exists()) {
-        setJoinListIdInput("")
-        return
-      }
-
-      addListToStorage(listIdToJoin)
+      await userLists.joinList(listIdToJoin)
       setJoinListIdInput("")
       setIsOpen(false)
       vibrate()
@@ -66,25 +50,21 @@ export function useSettingsConcern({ currentListId, storedLists, setCurrentListI
     }
   }
 
-  function createList() {
-    const newListId = generateListId()
+  async function createList() {
     const trimmedName = normalizeText(newListNameInput)
-    const nextLists = [{ listId: newListId, listName: trimmedName }, ...storedLists]
-
-    handleListsChange(nextLists)
-    setCurrentListId(newListId)
+    await userLists.createList(trimmedName)
     setNewListNameInput("")
     setIsOpen(false)
     vibrate()
   }
 
   async function copyList() {
-    if (!currentListId) {
+    if (!userLists.currentListId) {
       return false
     }
 
     try {
-      await navigator.clipboard.writeText(currentListId)
+      await navigator.clipboard.writeText(userLists.currentListId)
       vibrate()
       return true
     } catch {
@@ -93,17 +73,24 @@ export function useSettingsConcern({ currentListId, storedLists, setCurrentListI
     }
   }
 
-  function editListName() {
-    if (!currentListId) {
+  async function editListName() {
+    if (!userLists.currentListId) {
       return
     }
 
     const trimmedName = normalizeText(currentListNameInput)
-
-    const nextLists = storedLists.map(list => (list.listId === currentListId ? { ...list, listName: trimmedName } : list))
-
-    handleListsChange(nextLists)
+    await userLists.renameList(userLists.currentListId, trimmedName)
     setIsOpen(false)
+    vibrate()
+  }
+
+  async function removeMember(memberUid: string) {
+    await userLists.removeMember(memberUid)
+    vibrate()
+  }
+
+  async function transferOwnership(nextOwnerUid: string) {
+    await userLists.transferOwnership(nextOwnerUid)
     vibrate()
   }
 
@@ -120,6 +107,11 @@ export function useSettingsConcern({ currentListId, storedLists, setCurrentListI
     createList,
     copyList,
     editListName,
+    currentListMembers: userLists.currentListMembers,
+    currentListOwnerUid: userLists.currentListOwnerUid,
+    isCurrentUserOwner: userLists.isCurrentUserOwner,
+    removeMember,
+    transferOwnership,
     isOpen,
     setIsOpen
   }

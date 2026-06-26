@@ -12,6 +12,7 @@ import {
   type User
 } from "firebase/auth"
 import { auth, firebaseAuthReady } from "@/shared/lib/firebase"
+import { useUserProfile } from "./useUserProfile"
 
 const PENDING_EMAIL_KEY = "putitonthelist.pendingEmailForSignIn"
 const AUTH_UNAVAILABLE_MESSAGE = "Firebase auth is not configured. Set NEXT_PUBLIC_FIREBASE_API_KEY and NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN."
@@ -34,6 +35,7 @@ export function useEmailLinkAuth() {
   const [statusMessage, setStatusMessage] = useState("")
   const [errorMessage, setErrorMessage] = useState(() => (firebaseAuth ? "" : AUTH_UNAVAILABLE_MESSAGE))
   const [isSignInLink, setIsSignInLink] = useState(false)
+  const account = useUserProfile(user)
 
   useEffect(() => {
     if (!firebaseAuth) {
@@ -191,6 +193,7 @@ export function useEmailLinkAuth() {
     errorMessage,
     isSignInLink,
     hasAuthConfig: firebaseAuthReady,
+    account,
     submitEmailLink,
     handleSignOut
   }

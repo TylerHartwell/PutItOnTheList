@@ -5,6 +5,8 @@ import { useEmailLinkAuth } from "../hooks/useEmailLinkAuth"
 import { EmailLinkAuthLoadingState } from "./EmailLinkAuthLoadingState"
 import { EmailLinkSignInView } from "./EmailLinkSignInView"
 import { EmailLinkSignedInBar } from "./EmailLinkSignedInBar"
+import { UsernameSetupView } from "./UsernameSetupView"
+import { AuthContext } from "@/shared/lib/auth-context"
 
 type EmailLinkAuthGateProps = {
   children: ReactNode
@@ -22,11 +24,12 @@ export function EmailLinkAuthGate({ children }: EmailLinkAuthGateProps) {
     errorMessage,
     isSignInLink,
     hasAuthConfig,
+    account,
     submitEmailLink,
     handleSignOut
   } = useEmailLinkAuth()
 
-  if (loading) {
+  if (loading || account.isLoading) {
     return <EmailLinkAuthLoadingState />
   }
 
@@ -46,9 +49,15 @@ export function EmailLinkAuthGate({ children }: EmailLinkAuthGateProps) {
     )
   }
 
+  if (account.requiresUsernameSetup) {
+    return <UsernameSetupView account={account} onSignOut={handleSignOut} />
+  }
+
   return (
-    <EmailLinkSignedInBar statusMessage={statusMessage} errorMessage={errorMessage} onSignOut={handleSignOut}>
-      {children}
-    </EmailLinkSignedInBar>
+    <AuthContext.Provider value={{ user, account }}>
+      <EmailLinkSignedInBar statusMessage={statusMessage} errorMessage={errorMessage} onSignOut={handleSignOut} account={account}>
+        {children}
+      </EmailLinkSignedInBar>
+    </AuthContext.Provider>
   )
 }

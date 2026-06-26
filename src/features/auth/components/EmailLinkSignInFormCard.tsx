@@ -34,37 +34,45 @@ export function EmailLinkSignInFormCard({
         Receive a one-time link to your inbox. Open that link on this device to finish signing in.
       </p>
 
-      <label className="mt-6 block text-sm font-medium text-[#5f4a31]" htmlFor="email-link-address">
-        Email address
-      </label>
-      <input
-        id="email-link-address"
-        type="email"
-        autoComplete="email"
-        inputMode="email"
-        value={emailInput}
-        onChange={event => onEmailInputChange(event.target.value)}
-        placeholder="you@example.com"
-        className="mt-2 w-full rounded-2xl border border-[#d9c8ab] bg-white px-4 py-3 text-base outline-none transition placeholder:text-[#aa9475] focus:border-[#8a6d45] focus:ring-2 focus:ring-[#ffcf70]/40"
-      />
-
-      <button
-        type="button"
-        onClick={onSubmitEmailLink}
-        disabled={sending || completing}
-        className="mt-5 inline-flex items-center justify-center rounded-2xl bg-[#432000] px-5 py-3 text-sm font-medium text-white transition hover:bg-[#301500] disabled:cursor-not-allowed disabled:opacity-60"
+      <form
+        className="mt-6"
+        onSubmit={event => {
+          event.preventDefault()
+          onSubmitEmailLink()
+        }}
       >
-        {sending || completing ? (
-          <>
-            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-            {isSignInLink ? "Finishing sign in" : "Sending link"}
-          </>
-        ) : isSignInLink ? (
-          "Finish sign in"
-        ) : (
-          "Send sign-in link"
-        )}
-      </button>
+        <label className="block text-sm font-medium text-[#5f4a31]" htmlFor="email-link-address">
+          Email address
+        </label>
+        <input
+          id="email-link-address"
+          type="email"
+          autoComplete="email"
+          inputMode="email"
+          value={emailInput}
+          onChange={event => onEmailInputChange(event.target.value)}
+          placeholder="you@example.com"
+          required
+          className="mt-2 w-full rounded-2xl border border-[#d9c8ab] bg-white px-4 py-3 text-base outline-none transition placeholder:text-[#aa9475] focus:border-[#8a6d45] focus:ring-2 focus:ring-[#ffcf70]/40"
+        />
+
+        <button
+          type="submit"
+          disabled={sending || completing}
+          className="mt-5 inline-flex items-center justify-center rounded-2xl bg-[#432000] px-5 py-3 text-sm font-medium text-white transition hover:bg-[#301500] disabled:cursor-not-allowed disabled:opacity-60"
+        >
+          {sending || completing ? (
+            <>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              {isSignInLink ? "Finishing sign in" : "Sending link"}
+            </>
+          ) : isSignInLink ? (
+            "Finish sign in"
+          ) : (
+            "Send sign-in link"
+          )}
+        </button>
+      </form>
 
       {statusMessage ? <p className="mt-4 rounded-2xl bg-[#eef5ef] px-4 py-3 text-sm text-[#2f5a3f]">{statusMessage}</p> : null}
       {errorMessage ? <p className="mt-4 rounded-2xl bg-[#ffe9e4] px-4 py-3 text-sm text-[#9d3d27]">{errorMessage}</p> : null}
