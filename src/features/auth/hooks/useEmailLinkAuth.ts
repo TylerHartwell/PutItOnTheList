@@ -20,6 +20,31 @@ import { useUserProfile } from "./useUserProfile"
 
 const PENDING_EMAIL_KEY = "putitonthelist.pendingEmailForSignIn"
 const AUTH_UNAVAILABLE_MESSAGE = firebaseAuthUnavailableMessage
+const FIREBASE_AUTH_QUERY_KEYS = ["apiKey", "oobCode", "mode", "lang", "continueUrl", "continue_url"] as const
+
+function clearFirebaseAuthQueryParamsFromCurrentUrl() {
+  if (typeof window === "undefined") {
+    return
+  }
+
+  const currentUrl = new URL(window.location.href)
+  let didRemoveAny = false
+
+  for (const key of FIREBASE_AUTH_QUERY_KEYS) {
+    if (currentUrl.searchParams.has(key)) {
+      currentUrl.searchParams.delete(key)
+      didRemoveAny = true
+    }
+  }
+
+  if (!didRemoveAny) {
+    return
+  }
+
+  const nextQuery = currentUrl.searchParams.toString()
+  const nextPath = `${currentUrl.pathname}${nextQuery ? `?${nextQuery}` : ""}${currentUrl.hash}`
+  window.history.replaceState({}, document.title, nextPath)
+}
 
 function parseEmailHintFromUrl(rawUrl: string) {
   const urlsToInspect: string[] = [rawUrl]
@@ -115,10 +140,7 @@ export function useEmailLinkAuth() {
         await setPersistence(firebaseAuth, browserLocalPersistence)
         const credential = await signInWithEmailLink(firebaseAuth, emailToUse, signInUrl)
         window.localStorage.removeItem(PENDING_EMAIL_KEY)
-
-        if (isSignInWithEmailLink(firebaseAuth, window.location.href)) {
-          window.history.replaceState({}, document.title, window.location.pathname)
-        }
+        clearFirebaseAuthQueryParamsFromCurrentUrl()
 
         setUser(credential.user)
         setManualLinkInput("")
@@ -149,6 +171,7 @@ export function useEmailLinkAuth() {
       setUser(nextUser)
       if (nextUser) {
         setStatusMessage("")
+        clearFirebaseAuthQueryParamsFromCurrentUrl()
       }
       setLoading(false)
     })
@@ -161,6 +184,8 @@ export function useEmailLinkAuth() {
       const currentUrl = window.location.href
       if (!isSignInWithEmailLink(firebaseAuth, currentUrl)) {
         setIsSignInLink(false)
+        // Remove stale Firebase action params from old/used links.
+        clearFirebaseAuthQueryParamsFromCurrentUrl()
         return
       }
 
