@@ -51,6 +51,10 @@
         }
       }
     },
+    "$legacyListId": {
+      ".read": "auth != null && root.child('lists').child($legacyListId).child('members').child(auth.uid).exists()",
+      ".write": "auth != null && !newData.exists() && data.exists() && root.child('lists').child($legacyListId).child('members').child(auth.uid).exists()"
+    },
     "users": {
       "$uid": {
         ".read": "auth != null && auth.uid === $uid",

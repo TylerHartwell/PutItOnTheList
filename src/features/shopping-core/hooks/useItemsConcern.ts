@@ -95,7 +95,6 @@ export function useItemsConcern(user: User | null, currentListId: string, editor
       isMigratingLegacyItems = true
 
       const migrationUpdates: Record<string, unknown> = {
-        [currentListId]: null,
         [`lists/${currentListId}/lastEditedBy`]: editorUsername
       }
 
@@ -109,6 +108,10 @@ export function useItemsConcern(user: User | null, currentListId: string, editor
 
       try {
         await update(ref(db), migrationUpdates)
+
+        // Legacy cleanup happens in a follow-up call so copy succeeds even if delete permissions fail.
+        await remove(ref(db, currentListId)).catch(() => {})
+
         nextCurrentItems = nextLegacyItems
         nextLegacyItems = []
       } catch {

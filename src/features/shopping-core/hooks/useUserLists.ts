@@ -27,14 +27,31 @@ function generateListId(): string {
 
 export function useUserLists(user: User | null, activeUsername: string) {
   const [storedLists, setStoredLists] = useState<StoredList[]>([])
-  const [currentListId, setCurrentListId] = useState("")
+  const [currentListId, setCurrentListIdState] = useState("")
   const [isLoading, setIsLoading] = useState(!!user)
   const [currentListMembers, setCurrentListMembers] = useState<ListMember[]>([])
   const [currentListOwnerUid, setCurrentListOwnerUid] = useState("")
   const [currentListLastEditedBy, setCurrentListLastEditedBy] = useState("")
   const [hasRunLegacyMigration, setHasRunLegacyMigration] = useState(false)
   const isBootstrappingDefaultListRef = useRef(false)
+  const hasResolvedInitialCurrentListRef = useRef(false)
   const isCurrentUserOwner = Boolean(user?.uid && currentListOwnerUid && user.uid === currentListOwnerUid)
+
+  const setCurrentListId = useCallback((nextListId: string | ((previousListId: string) => string)) => {
+    setCurrentListIdState(nextListId)
+  }, [])
+
+  useEffect(() => {
+    if (!database || !user || !hasResolvedInitialCurrentListRef.current) {
+      return
+    }
+
+    void update(ref(database), {
+      [`users/${user.uid}/currentListId`]: currentListId || null
+    }).catch(() => {
+      // Keep list selection responsive even if preference persistence fails.
+    })
+  }, [currentListId, user])
 
   const createList = useCallback(
     async (listName: string) => {
@@ -95,7 +112,7 @@ export function useUserLists(user: User | null, activeUsername: string) {
 
       setCurrentListId(newListId)
     },
-    [activeUsername, user]
+    [activeUsername, setCurrentListId, user]
   )
 
   const ensureDefaultList = useCallback(async () => {
@@ -229,7 +246,7 @@ export function useUserLists(user: User | null, activeUsername: string) {
     return () => {
       isCancelled = true
     }
-  }, [activeUsername, hasRunLegacyMigration, user])
+  }, [activeUsername, hasRunLegacyMigration, setCurrentListId, user])
 
   useEffect(() => {
     if (!database || !user || !activeUsername || storedLists.length === 0) {
@@ -259,6 +276,7 @@ export function useUserLists(user: User | null, activeUsername: string) {
     let isCancelled = false
 
     if (!database) {
+      hasResolvedInitialCurrentListRef.current = false
       Promise.resolve().then(() => {
         if (isCancelled) {
           return
@@ -275,6 +293,7 @@ export function useUserLists(user: User | null, activeUsername: string) {
     }
 
     if (!user) {
+      hasResolvedInitialCurrentListRef.current = false
       Promise.resolve().then(() => {
         if (isCancelled) {
           return
@@ -303,6 +322,7 @@ export function useUserLists(user: User | null, activeUsername: string) {
         }
 
         if (!snapshot.exists()) {
+          hasResolvedInitialCurrentListRef.current = false
           setStoredLists([])
           setCurrentListId("")
           setIsLoading(true)
@@ -347,7 +367,18 @@ export function useUserLists(user: User | null, activeUsername: string) {
           }
         })
 
-        void Promise.all(listMetadataPromises).then(lists => {
+        const persistedCurrentListPromise = get(ref(db, `users/${user.uid}/currentListId`))
+          .then(currentListSnapshot => {
+            if (!currentListSnapshot.exists()) {
+              return ""
+            }
+
+            const persistedListIdValue = currentListSnapshot.val()
+            return typeof persistedListIdValue === "string" ? persistedListIdValue : ""
+          })
+          .catch(() => "")
+
+        void Promise.all([Promise.all(listMetadataPromises), persistedCurrentListPromise]).then(([lists, persistedCurrentListId]) => {
           if (isCancelled) {
             return
           }
@@ -360,9 +391,14 @@ export function useUserLists(user: User | null, activeUsername: string) {
               return previousListId
             }
 
+            if (persistedCurrentListId && validLists.some(list => list.listId === persistedCurrentListId)) {
+              return persistedCurrentListId
+            }
+
             return validLists[0]?.listId ?? ""
           })
 
+          hasResolvedInitialCurrentListRef.current = true
           setIsLoading(false)
         })
       },
@@ -381,7 +417,7 @@ export function useUserLists(user: User | null, activeUsername: string) {
       isCancelled = true
       unsubscribe()
     }
-  }, [ensureDefaultList, user])
+  }, [ensureDefaultList, setCurrentListId, user])
 
   useEffect(() => {
     let isCancelled = false
