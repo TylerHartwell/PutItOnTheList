@@ -57,6 +57,10 @@ export function useItemsConcern(user: User | null, currentListId: string, editor
 
     let nextCurrentItems: ShoppingItem[] = []
     let nextLegacyItems: ShoppingItem[] = []
+    let hasLoadedCurrentItems = false
+    let hasLoadedLegacyItems = false
+    let hasAttemptedLegacyMigration = false
+    let isMigratingLegacyItems = false
 
     const updateItems = () => {
       if (nextCurrentItems.length > 0) {
@@ -74,21 +78,66 @@ export function useItemsConcern(user: User | null, currentListId: string, editor
       setItems([])
     }
 
+    const migrateLegacyItemsIfNeeded = async () => {
+      if (hasAttemptedLegacyMigration || isMigratingLegacyItems) {
+        return
+      }
+
+      if (!hasLoadedCurrentItems || !hasLoadedLegacyItems) {
+        return
+      }
+
+      if (nextCurrentItems.length > 0 || nextLegacyItems.length === 0) {
+        return
+      }
+
+      hasAttemptedLegacyMigration = true
+      isMigratingLegacyItems = true
+
+      const migrationUpdates: Record<string, unknown> = {
+        [currentListId]: null,
+        [`lists/${currentListId}/lastEditedBy`]: editorUsername
+      }
+
+      for (const legacyItem of nextLegacyItems) {
+        migrationUpdates[`lists/${currentListId}/items/${legacyItem.id}`] = {
+          itemName: legacyItem.itemName,
+          itemHighlighted: legacyItem.itemHighlighted,
+          lastEditedBy: legacyItem.lastEditedBy || editorUsername
+        }
+      }
+
+      try {
+        await update(ref(db), migrationUpdates)
+        nextCurrentItems = nextLegacyItems
+        nextLegacyItems = []
+      } catch {
+        // Keep legacy data intact if migration cannot be completed.
+      } finally {
+        isMigratingLegacyItems = false
+        updateItems()
+      }
+    }
+
     const unsubscribeCurrent = onValue(itemsRef, snapshot => {
+      hasLoadedCurrentItems = true
       nextCurrentItems = snapshot.exists() ? readItemsFromSnapshot(snapshot.val()) : []
       updateItems()
+      void migrateLegacyItemsIfNeeded()
     })
 
     const unsubscribeLegacy = onValue(legacyItemsRef, snapshot => {
+      hasLoadedLegacyItems = true
       nextLegacyItems = snapshot.exists() ? readItemsFromSnapshot(snapshot.val()) : []
       updateItems()
+      void migrateLegacyItemsIfNeeded()
     })
 
     return () => {
       unsubscribeCurrent()
       unsubscribeLegacy()
     }
-  }, [currentListId, user])
+  }, [currentListId, editorUsername, user])
 
   useEffect(() => {
     if (editingItemId && editInputRef.current) {
@@ -153,17 +202,18 @@ export function useItemsConcern(user: User | null, currentListId: string, editor
 
     const db = database
     const itemsPath = itemSource === "legacy" ? currentListId : `lists/${currentListId}/items`
+    const batchUpdates: Record<string, unknown> = {
+      [`lists/${currentListId}/lastEditedBy`]: editorUsername
+    }
 
     for (const item of items) {
       if (item.itemHighlighted !== nextValue) {
-        void update(ref(db, `${itemsPath}/${item.id}`), {
-          itemHighlighted: nextValue,
-          lastEditedBy: editorUsername
-        })
+        batchUpdates[`${itemsPath}/${item.id}/itemHighlighted`] = nextValue
+        batchUpdates[`${itemsPath}/${item.id}/lastEditedBy`] = editorUsername
       }
     }
 
-    set(ref(db, `lists/${currentListId}/lastEditedBy`), editorUsername)
+    void update(ref(db), batchUpdates)
     vibrate()
   }
 
@@ -179,13 +229,17 @@ export function useItemsConcern(user: User | null, currentListId: string, editor
       return
     }
 
+    const batchUpdates: Record<string, unknown> = {
+      [`lists/${currentListId}/lastEditedBy`]: editorUsername
+    }
+
     for (const item of items) {
       if (item.itemHighlighted) {
-        remove(ref(db, `${itemsPath}/${item.id}`))
+        batchUpdates[`${itemsPath}/${item.id}`] = null
       }
     }
 
-    set(ref(db, `lists/${currentListId}/lastEditedBy`), editorUsername)
+    void update(ref(db), batchUpdates)
     vibrate()
   }
 
@@ -201,8 +255,10 @@ export function useItemsConcern(user: User | null, currentListId: string, editor
       return
     }
 
-    remove(ref(db, itemsPath))
-    set(ref(db, `lists/${currentListId}/lastEditedBy`), editorUsername)
+    void update(ref(db), {
+      [itemsPath]: null,
+      [`lists/${currentListId}/lastEditedBy`]: editorUsername
+    })
     vibrate()
   }
 

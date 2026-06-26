@@ -1,7 +1,7 @@
 "use client"
 
 import { useCallback, useEffect, useRef, useState } from "react"
-import { get, onValue, ref, update } from "firebase/database"
+import { get, onValue, ref, runTransaction, update } from "firebase/database"
 import { type User } from "firebase/auth"
 import { database } from "@/shared/lib/firebase"
 import { normalizeText } from "@/shared/utils/text"
@@ -9,6 +9,7 @@ import type { ListMember, StoredList } from "@/shared/types/shopping"
 import { loadLegacyListMetadataForAuthMigration, removeMigratedLegacyLocalStorageLists } from "../utils/legacy-list-migration"
 
 const LISTS_ROOT = "lists"
+const MAX_CREATE_LIST_ATTEMPTS = 10
 
 function generateListId(): string {
   const alphabet = "0123456789"
@@ -42,26 +43,55 @@ export function useUserLists(user: User | null, activeUsername: string) {
       }
 
       const db = database
-
-      const newListId = generateListId()
       const trimmedName = normalizeText(listName)
 
-      await update(ref(db), {
-        [`${LISTS_ROOT}/${newListId}`]: {
-          owner: user.uid,
-          listName: trimmedName,
-          lastEditedBy: activeUsername,
-          members: {
-            [user.uid]: true
-          },
-          memberProfiles: {
-            [user.uid]: {
-              username: activeUsername
-            }
-          }
+      const listRecord = {
+        owner: user.uid,
+        listName: trimmedName,
+        lastEditedBy: activeUsername,
+        members: {
+          [user.uid]: true
         },
-        [`users/${user.uid}/${LISTS_ROOT}/${newListId}`]: true
-      })
+        memberProfiles: {
+          [user.uid]: {
+            username: activeUsername
+          }
+        }
+      }
+
+      let newListId = ""
+
+      for (let attempt = 0; attempt < MAX_CREATE_LIST_ATTEMPTS; attempt += 1) {
+        const candidateListId = generateListId()
+        const reservationResult = await runTransaction(ref(db, `${LISTS_ROOT}/${candidateListId}`), currentValue => {
+          if (currentValue !== null) {
+            return
+          }
+
+          return listRecord
+        })
+
+        if (reservationResult.committed) {
+          newListId = candidateListId
+          break
+        }
+      }
+
+      if (!newListId) {
+        throw new Error("Could not reserve a unique list ID. Please try again.")
+      }
+
+      try {
+        await update(ref(db), {
+          [`users/${user.uid}/${LISTS_ROOT}/${newListId}`]: true
+        })
+      } catch (error) {
+        await update(ref(db), {
+          [`${LISTS_ROOT}/${newListId}`]: null
+        })
+
+        throw error
+      }
 
       setCurrentListId(newListId)
     },
@@ -111,7 +141,7 @@ export function useUserLists(user: User | null, activeUsername: string) {
       const { listIds, listNamesById, localStorageLists } = loadLegacyListMetadataForAuthMigration()
       const legacyListIds = listIds.map(listId => listId.trim()).filter(Boolean)
       const localStorageListIdSet = new Set(localStorageLists.map(list => list.listId))
-      const migratedLocalStorageListIdsWithNames: string[] = []
+      const migratedLocalStorageListIds: string[] = []
 
       if (legacyListIds.length === 0) {
         if (!isCancelled) {
@@ -129,8 +159,6 @@ export function useUserLists(user: User | null, activeUsername: string) {
           const listRef = ref(db, `${LISTS_ROOT}/${listId}`)
           const listSnapshot = await get(listRef)
           const localLegacyName = normalizeText(listNamesById[listId] ?? "")
-          let finalListName = ""
-
           if (!listSnapshot.exists()) {
             // Create missing list metadata in a single write so it passes list create rules.
             await update(ref(db), {
@@ -150,10 +178,8 @@ export function useUserLists(user: User | null, activeUsername: string) {
               [`users/${user.uid}/${LISTS_ROOT}/${listId}`]: true
             })
 
-            finalListName = localLegacyName
-
-            if (finalListName && localStorageListIdSet.has(listId)) {
-              migratedLocalStorageListIdsWithNames.push(listId)
+            if (localStorageListIdSet.has(listId)) {
+              migratedLocalStorageListIds.push(listId)
             }
             continue
           }
@@ -163,9 +189,6 @@ export function useUserLists(user: User | null, activeUsername: string) {
             lastEditedBy?: unknown
             listName?: unknown
           }
-          const existingListName = normalizeText(typeof listValue.listName === "string" ? listValue.listName : "")
-          finalListName = existingListName || localLegacyName
-
           const migrationUpdates: Record<string, string | boolean> = {
             [`${LISTS_ROOT}/${listId}/members/${user.uid}`]: true,
             [`${LISTS_ROOT}/${listId}/memberProfiles/${user.uid}/username`]: activeUsername,
@@ -186,15 +209,15 @@ export function useUserLists(user: User | null, activeUsername: string) {
 
           await update(ref(db), migrationUpdates)
 
-          if (finalListName && localStorageListIdSet.has(listId)) {
-            migratedLocalStorageListIdsWithNames.push(listId)
+          if (localStorageListIdSet.has(listId)) {
+            migratedLocalStorageListIds.push(listId)
           }
         } catch {
           // Keep migration best-effort and non-blocking.
         }
       }
 
-      removeMigratedLegacyLocalStorageLists(migratedLocalStorageListIdsWithNames)
+      removeMigratedLegacyLocalStorageLists(migratedLocalStorageListIds)
 
       if (!isCancelled) {
         setHasRunLegacyMigration(true)
@@ -582,7 +605,8 @@ export function useUserLists(user: User | null, activeUsername: string) {
 
     await update(ref(db), {
       [`${LISTS_ROOT}/${currentListId}/members/${memberUid}`]: null,
-      [`${LISTS_ROOT}/${currentListId}/memberProfiles/${memberUid}`]: null
+      [`${LISTS_ROOT}/${currentListId}/memberProfiles/${memberUid}`]: null,
+      [`users/${memberUid}/${LISTS_ROOT}/${currentListId}`]: null
     })
   }
 

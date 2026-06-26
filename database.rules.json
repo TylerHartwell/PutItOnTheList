@@ -3,19 +3,50 @@
     "usernames": {
       "$usernameKey": {
         ".read": "auth != null",
-        ".write": "auth != null && ((!data.exists() && newData.val() === auth.uid) || (data.val() === auth.uid && newData.val() === auth.uid) || (data.val() === auth.uid && !newData.exists()))"
+        ".write": "auth != null && ((!data.exists() && newData.val() === auth.uid) || (data.val() === auth.uid && newData.val() === auth.uid) || (data.val() === auth.uid && !newData.exists()))",
+        ".validate": "!newData.exists() || (newData.isString() && newData.val().length > 0)"
       }
     },
     "lists": {
       "$listId": {
         ".read": "auth != null && root.child('lists').child($listId).child('members').child(auth.uid).exists()",
         ".write": "auth != null && ((!data.exists() && newData.child('owner').val() === auth.uid && newData.child('members').child(auth.uid).val() === true) || (data.exists() && root.child('lists').child($listId).child('members').child(auth.uid).exists()))",
+        ".validate": "!newData.exists() || (newData.child('owner').isString() && newData.child('owner').val().length > 0 && newData.child('listName').isString() && newData.child('listName').val().length <= 80 && newData.child('lastEditedBy').isString() && newData.child('lastEditedBy').val().length <= 32 && newData.child('members').child(newData.child('owner').val()).val() === true)",
         "owner": {
-          ".write": "auth != null && ((!data.exists() && newData.val() === auth.uid) || (data.exists() && data.val() === auth.uid && root.child('lists').child($listId).child('members').child(newData.val()).exists()))"
+          ".write": "auth != null && ((!data.exists() && newData.val() === auth.uid) || (data.exists() && data.val() === auth.uid && root.child('lists').child($listId).child('members').child(newData.val()).exists()))",
+          ".validate": "newData.isString() && newData.val().length > 0"
+        },
+        "listName": {
+          ".validate": "newData.isString() && newData.val().length <= 80"
+        },
+        "lastEditedBy": {
+          ".validate": "newData.isString() && newData.val().length <= 32"
         },
         "members": {
           "$uid": {
-            ".write": "auth != null && ((root.child('lists').child($listId).child('owner').val() === auth.uid && (newData.exists() || $uid !== auth.uid || !root.child('lists').child($listId).child('members').child($uid).exists())) || (auth.uid === $uid && !newData.exists()) || (auth.uid === $uid && !data.exists() && newData.exists()))"
+            ".write": "auth != null && ((root.child('lists').child($listId).child('owner').val() === auth.uid && (newData.exists() || $uid !== auth.uid || !root.child('lists').child($listId).child('members').child($uid).exists())) || (auth.uid === $uid && !newData.exists()) || (auth.uid === $uid && !data.exists() && newData.exists()))",
+            ".validate": "!newData.exists() || newData.val() === true"
+          }
+        },
+        "memberProfiles": {
+          "$uid": {
+            "username": {
+              ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 32"
+            }
+          }
+        },
+        "items": {
+          "$itemId": {
+            ".validate": "!newData.exists() || (newData.child('itemName').isString() && newData.child('itemName').val().length > 0 && newData.child('itemName').val().length <= 140 && newData.child('itemHighlighted').isBoolean() && newData.child('lastEditedBy').isString() && newData.child('lastEditedBy').val().length <= 32)",
+            "itemName": {
+              ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 140"
+            },
+            "itemHighlighted": {
+              ".validate": "newData.isBoolean()"
+            },
+            "lastEditedBy": {
+              ".validate": "newData.isString() && newData.val().length <= 32"
+            }
           }
         }
       }
@@ -23,7 +54,28 @@
     "users": {
       "$uid": {
         ".read": "auth != null && auth.uid === $uid",
-        ".write": "auth != null && auth.uid === $uid"
+        ".write": "auth != null && auth.uid === $uid",
+        "uid": {
+          ".validate": "newData.isString() && newData.val() === $uid"
+        },
+        "email": {
+          ".validate": "newData.isString() && newData.val().length <= 320"
+        },
+        "username": {
+          ".validate": "newData.isString() && newData.val().matches(/^[a-z0-9_]{6,18}$/)"
+        },
+        "createdAt": {
+          ".validate": "newData.isNumber()"
+        },
+        "updatedAt": {
+          ".validate": "newData.isNumber()"
+        },
+        "lists": {
+          "$listId": {
+            ".write": "auth != null && (auth.uid === $uid || (!newData.exists() && root.child('lists').child($listId).child('owner').val() === auth.uid))",
+            ".validate": "!newData.exists() || newData.val() === true"
+          }
+        }
       }
     }
   }
