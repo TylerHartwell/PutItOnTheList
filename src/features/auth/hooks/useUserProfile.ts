@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react"
 import { updateProfile, type User } from "firebase/auth"
 import { get, onValue, ref, remove, runTransaction, update } from "firebase/database"
-import { database, getFirebaseDatabaseUnavailableMessage } from "@/shared/lib/firebase"
+import { database, firebaseDatabaseUnavailableMessage } from "@/shared/lib/firebase"
 import type { UserProfileRecord } from "@/shared/types/user"
 
 const USERS_ROOT = "users"
@@ -42,7 +42,7 @@ function getFriendlyError(error: unknown) {
 }
 
 function getDatabaseUnavailableError() {
-  return getFirebaseDatabaseUnavailableMessage()
+  return firebaseDatabaseUnavailableMessage
 }
 
 function buildProfileSnapshot(user: User, rawProfile: Partial<UserProfileRecord> | null): UserProfileRecord {

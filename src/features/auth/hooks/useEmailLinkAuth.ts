@@ -11,11 +11,11 @@ import {
   signOut,
   type User
 } from "firebase/auth"
-import { auth, firebaseAuthReady, getFirebaseAuthUnavailableMessage } from "@/shared/lib/firebase"
+import { auth, firebaseAuthReady, firebaseAuthUnavailableMessage } from "@/shared/lib/firebase"
 import { useUserProfile } from "./useUserProfile"
 
 const PENDING_EMAIL_KEY = "putitonthelist.pendingEmailForSignIn"
-const AUTH_UNAVAILABLE_MESSAGE = getFirebaseAuthUnavailableMessage()
+const AUTH_UNAVAILABLE_MESSAGE = firebaseAuthUnavailableMessage
 
 function getFriendlyError(error: unknown) {
   if (error instanceof Error && error.message) {
