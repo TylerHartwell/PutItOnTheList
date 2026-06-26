@@ -6,7 +6,7 @@ import { type User } from "firebase/auth"
 import { database } from "@/shared/lib/firebase"
 import { normalizeText } from "@/shared/utils/text"
 import type { ListMember, StoredList } from "@/shared/types/shopping"
-import { loadLegacyListIdsForAuthMigration } from "../utils/legacy-list-migration"
+import { loadLegacyListMetadataForAuthMigration } from "../utils/legacy-list-migration"
 
 const LISTS_ROOT = "lists"
 
@@ -108,9 +108,8 @@ export function useUserLists(user: User | null, activeUsername: string) {
     let isCancelled = false
 
     const migrateLegacyLocalStorageLists = async () => {
-      const legacyListIds = loadLegacyListIdsForAuthMigration()
-        .map(listId => listId.trim())
-        .filter(Boolean)
+      const { listIds, listNamesById } = loadLegacyListMetadataForAuthMigration()
+      const legacyListIds = listIds.map(listId => listId.trim()).filter(Boolean)
 
       if (legacyListIds.length === 0) {
         if (!isCancelled) {
@@ -125,30 +124,56 @@ export function useUserLists(user: User | null, activeUsername: string) {
         }
 
         try {
-          // Self-join list IDs found in legacy local storage.
-          await update(ref(db), {
+          const listRef = ref(db, `${LISTS_ROOT}/${listId}`)
+          const listSnapshot = await get(listRef)
+          const localLegacyName = normalizeText(listNamesById[listId] ?? "")
+
+          if (!listSnapshot.exists()) {
+            // Create missing list metadata in a single write so it passes list create rules.
+            await update(ref(db), {
+              [`${LISTS_ROOT}/${listId}`]: {
+                owner: user.uid,
+                listName: localLegacyName,
+                lastEditedBy: activeUsername,
+                members: {
+                  [user.uid]: true
+                },
+                memberProfiles: {
+                  [user.uid]: {
+                    username: activeUsername
+                  }
+                }
+              },
+              [`users/${user.uid}/${LISTS_ROOT}/${listId}`]: true
+            })
+            continue
+          }
+
+          const listValue = listSnapshot.val() as {
+            owner?: unknown
+            lastEditedBy?: unknown
+            listName?: unknown
+          }
+
+          const migrationUpdates: Record<string, string | boolean> = {
             [`${LISTS_ROOT}/${listId}/members/${user.uid}`]: true,
             [`${LISTS_ROOT}/${listId}/memberProfiles/${user.uid}/username`]: activeUsername,
             [`users/${user.uid}/${LISTS_ROOT}/${listId}`]: true
-          })
-
-          const ownerRef = ref(db, `${LISTS_ROOT}/${listId}/owner`)
-          const ownerSnapshot = await get(ownerRef)
-          const currentOwnerUid = typeof ownerSnapshot.val() === "string" ? ownerSnapshot.val() : ""
-
-          if (!currentOwnerUid) {
-            await update(ref(db), {
-              [`${LISTS_ROOT}/${listId}/owner`]: user.uid
-            })
           }
 
-          const lastEditedByRef = ref(db, `${LISTS_ROOT}/${listId}/lastEditedBy`)
-          const lastEditedBySnapshot = await get(lastEditedByRef)
-          if (typeof lastEditedBySnapshot.val() !== "string" || !lastEditedBySnapshot.val().trim()) {
-            await update(ref(db), {
-              [`${LISTS_ROOT}/${listId}/lastEditedBy`]: activeUsername
-            })
+          if (typeof listValue.owner !== "string" || !listValue.owner.trim()) {
+            migrationUpdates[`${LISTS_ROOT}/${listId}/owner`] = user.uid
           }
+
+          if (typeof listValue.lastEditedBy !== "string" || !listValue.lastEditedBy.trim()) {
+            migrationUpdates[`${LISTS_ROOT}/${listId}/lastEditedBy`] = activeUsername
+          }
+
+          if (localLegacyName && (typeof listValue.listName !== "string" || !listValue.listName.trim())) {
+            migrationUpdates[`${LISTS_ROOT}/${listId}/listName`] = localLegacyName
+          }
+
+          await update(ref(db), migrationUpdates)
         } catch {
           // Keep migration best-effort and non-blocking.
         }

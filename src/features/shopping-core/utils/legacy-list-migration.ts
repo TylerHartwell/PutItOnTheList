@@ -1,6 +1,11 @@
 const LISTS_KEY = "lists"
 const LEGACY_LIST_IDS_KEY = "list-ids"
 
+export type LegacyLocalList = {
+  listId: string
+  listName: string
+}
+
 function getLocalStorage(): Storage | null {
   if (typeof window === "undefined") {
     return null
@@ -57,6 +62,48 @@ function safeParseStoredListIds(raw: string | null): string[] {
   }
 }
 
+function safeParseStoredLists(raw: string | null): LegacyLocalList[] {
+  if (!raw) {
+    return []
+  }
+
+  try {
+    const parsed = JSON.parse(raw)
+    if (!Array.isArray(parsed)) {
+      return []
+    }
+
+    const lists: LegacyLocalList[] = []
+
+    for (const entry of parsed) {
+      if (typeof entry !== "object" || entry === null || Array.isArray(entry)) {
+        continue
+      }
+
+      const maybeListId = (entry as { listId?: unknown }).listId
+      const maybeListName = (entry as { listName?: unknown }).listName
+
+      if (typeof maybeListId !== "string") {
+        continue
+      }
+
+      const trimmedListId = maybeListId.trim()
+      if (!trimmedListId) {
+        continue
+      }
+
+      lists.push({
+        listId: trimmedListId,
+        listName: typeof maybeListName === "string" ? maybeListName.trim() : ""
+      })
+    }
+
+    return lists
+  } catch {
+    return []
+  }
+}
+
 export function loadLegacyListIdsForAuthMigration() {
   const storage = getLocalStorage()
   if (!storage) {
@@ -67,4 +114,31 @@ export function loadLegacyListIdsForAuthMigration() {
   const legacyListIds = safeParseStringArray(storage.getItem(LEGACY_LIST_IDS_KEY))
 
   return Array.from(new Set([...storedListIds, ...legacyListIds]))
+}
+
+export function loadLegacyListMetadataForAuthMigration() {
+  const storage = getLocalStorage()
+  if (!storage) {
+    return {
+      listIds: [] as string[],
+      listNamesById: {} as Record<string, string>
+    }
+  }
+
+  const storedLists = safeParseStoredLists(storage.getItem(LISTS_KEY))
+  const legacyListIds = safeParseStringArray(storage.getItem(LEGACY_LIST_IDS_KEY))
+
+  const allListIds = Array.from(new Set([...storedLists.map(list => list.listId), ...legacyListIds]))
+  const listNamesById: Record<string, string> = {}
+
+  for (const list of storedLists) {
+    if (!listNamesById[list.listId] && list.listName) {
+      listNamesById[list.listId] = list.listName
+    }
+  }
+
+  return {
+    listIds: allListIds,
+    listNamesById
+  }
 }
