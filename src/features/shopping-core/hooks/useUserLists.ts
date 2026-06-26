@@ -6,7 +6,7 @@ import { type User } from "firebase/auth"
 import { database } from "@/shared/lib/firebase"
 import { normalizeText } from "@/shared/utils/text"
 import type { ListMember, StoredList } from "@/shared/types/shopping"
-import { loadLegacyListMetadataForAuthMigration } from "../utils/legacy-list-migration"
+import { loadLegacyListMetadataForAuthMigration, removeMigratedLegacyLocalStorageLists } from "../utils/legacy-list-migration"
 
 const LISTS_ROOT = "lists"
 
@@ -108,8 +108,10 @@ export function useUserLists(user: User | null, activeUsername: string) {
     let isCancelled = false
 
     const migrateLegacyLocalStorageLists = async () => {
-      const { listIds, listNamesById } = loadLegacyListMetadataForAuthMigration()
+      const { listIds, listNamesById, localStorageLists } = loadLegacyListMetadataForAuthMigration()
       const legacyListIds = listIds.map(listId => listId.trim()).filter(Boolean)
+      const localStorageListIdSet = new Set(localStorageLists.map(list => list.listId))
+      const migratedLocalStorageListIdsWithNames: string[] = []
 
       if (legacyListIds.length === 0) {
         if (!isCancelled) {
@@ -127,6 +129,7 @@ export function useUserLists(user: User | null, activeUsername: string) {
           const listRef = ref(db, `${LISTS_ROOT}/${listId}`)
           const listSnapshot = await get(listRef)
           const localLegacyName = normalizeText(listNamesById[listId] ?? "")
+          let finalListName = ""
 
           if (!listSnapshot.exists()) {
             // Create missing list metadata in a single write so it passes list create rules.
@@ -146,6 +149,12 @@ export function useUserLists(user: User | null, activeUsername: string) {
               },
               [`users/${user.uid}/${LISTS_ROOT}/${listId}`]: true
             })
+
+            finalListName = localLegacyName
+
+            if (finalListName && localStorageListIdSet.has(listId)) {
+              migratedLocalStorageListIdsWithNames.push(listId)
+            }
             continue
           }
 
@@ -154,6 +163,8 @@ export function useUserLists(user: User | null, activeUsername: string) {
             lastEditedBy?: unknown
             listName?: unknown
           }
+          const existingListName = normalizeText(typeof listValue.listName === "string" ? listValue.listName : "")
+          finalListName = existingListName || localLegacyName
 
           const migrationUpdates: Record<string, string | boolean> = {
             [`${LISTS_ROOT}/${listId}/members/${user.uid}`]: true,
@@ -174,10 +185,16 @@ export function useUserLists(user: User | null, activeUsername: string) {
           }
 
           await update(ref(db), migrationUpdates)
+
+          if (finalListName && localStorageListIdSet.has(listId)) {
+            migratedLocalStorageListIdsWithNames.push(listId)
+          }
         } catch {
           // Keep migration best-effort and non-blocking.
         }
       }
+
+      removeMigratedLegacyLocalStorageLists(migratedLocalStorageListIdsWithNames)
 
       if (!isCancelled) {
         setHasRunLegacyMigration(true)

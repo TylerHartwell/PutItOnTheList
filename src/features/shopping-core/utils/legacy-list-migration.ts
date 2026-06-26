@@ -121,7 +121,8 @@ export function loadLegacyListMetadataForAuthMigration() {
   if (!storage) {
     return {
       listIds: [] as string[],
-      listNamesById: {} as Record<string, string>
+      listNamesById: {} as Record<string, string>,
+      localStorageLists: [] as LegacyLocalList[]
     }
   }
 
@@ -139,6 +140,38 @@ export function loadLegacyListMetadataForAuthMigration() {
 
   return {
     listIds: allListIds,
-    listNamesById
+    listNamesById,
+    localStorageLists: storedLists
   }
+}
+
+export function removeMigratedLegacyLocalStorageLists(migratedListIds: string[]) {
+  if (migratedListIds.length === 0) {
+    return
+  }
+
+  const storage = getLocalStorage()
+  if (!storage) {
+    return
+  }
+
+  const migratedListIdSet = new Set(migratedListIds.map(listId => listId.trim()).filter(Boolean))
+  if (migratedListIdSet.size === 0) {
+    return
+  }
+
+  const currentStoredLists = safeParseStoredLists(storage.getItem(LISTS_KEY))
+  if (currentStoredLists.length === 0) {
+    storage.removeItem(LISTS_KEY)
+    return
+  }
+
+  const nextStoredLists = currentStoredLists.filter(list => !migratedListIdSet.has(list.listId))
+
+  if (nextStoredLists.length === 0) {
+    storage.removeItem(LISTS_KEY)
+    return
+  }
+
+  storage.setItem(LISTS_KEY, JSON.stringify(nextStoredLists))
 }
