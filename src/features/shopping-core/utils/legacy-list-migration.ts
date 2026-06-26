@@ -1,5 +1,6 @@
 const LISTS_KEY = "lists"
 const LEGACY_LIST_IDS_KEY = "list-ids"
+const LEGACY_GROUP_IDS_KEY = "group-ids"
 
 export type LegacyLocalList = {
   listId: string
@@ -16,6 +17,10 @@ function getLocalStorage(): Storage | null {
   } catch {
     return null
   }
+}
+
+function removeObsoleteLegacyStorageKeys(storage: Storage) {
+  storage.removeItem(LEGACY_GROUP_IDS_KEY)
 }
 
 function safeParseStringArray(raw: string | null): string[] {
@@ -110,6 +115,8 @@ export function loadLegacyListIdsForAuthMigration() {
     return []
   }
 
+  removeObsoleteLegacyStorageKeys(storage)
+
   const storedListIds = safeParseStoredListIds(storage.getItem(LISTS_KEY))
   const legacyListIds = safeParseStringArray(storage.getItem(LEGACY_LIST_IDS_KEY))
 
@@ -125,6 +132,8 @@ export function loadLegacyListMetadataForAuthMigration() {
       localStorageLists: [] as LegacyLocalList[]
     }
   }
+
+  removeObsoleteLegacyStorageKeys(storage)
 
   const storedLists = safeParseStoredLists(storage.getItem(LISTS_KEY))
   const legacyListIds = safeParseStringArray(storage.getItem(LEGACY_LIST_IDS_KEY))
@@ -154,6 +163,8 @@ export function removeMigratedLegacyLocalStorageLists(migratedListIds: string[])
   if (!storage) {
     return
   }
+
+  removeObsoleteLegacyStorageKeys(storage)
 
   const migratedListIdSet = new Set(migratedListIds.map(listId => listId.trim()).filter(Boolean))
   if (migratedListIdSet.size === 0) {

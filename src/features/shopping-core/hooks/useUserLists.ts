@@ -531,8 +531,27 @@ export function useUserLists(user: User | null, activeUsername: string) {
 
     const trimmedName = normalizeText(newName)
     await update(ref(db), {
-      [`${LISTS_ROOT}/${listId}/listName`]: trimmedName
+      [`${LISTS_ROOT}/${listId}/listName`]: trimmedName,
+      [`${LISTS_ROOT}/${listId}/lastEditedBy`]: activeUsername
     })
+
+    setStoredLists(previousLists =>
+      previousLists.map(list => {
+        if (list.listId !== listId) {
+          return list
+        }
+
+        return {
+          ...list,
+          listName: trimmedName,
+          lastEditedBy: activeUsername
+        }
+      })
+    )
+
+    if (currentListId === listId) {
+      setCurrentListLastEditedBy(activeUsername)
+    }
   }
 
   async function joinList(listIdToJoin: string) {
