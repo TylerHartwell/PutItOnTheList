@@ -11,11 +11,11 @@ import {
   signOut,
   type User
 } from "firebase/auth"
-import { auth, firebaseAuthReady } from "@/shared/lib/firebase"
+import { auth, firebaseAuthReady, getFirebaseAuthUnavailableMessage } from "@/shared/lib/firebase"
 import { useUserProfile } from "./useUserProfile"
 
 const PENDING_EMAIL_KEY = "putitonthelist.pendingEmailForSignIn"
-const AUTH_UNAVAILABLE_MESSAGE = "Firebase auth is not configured. Set NEXT_PUBLIC_FIREBASE_API_KEY and NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN."
+const AUTH_UNAVAILABLE_MESSAGE = getFirebaseAuthUnavailableMessage()
 
 function getFriendlyError(error: unknown) {
   if (error instanceof Error && error.message) {
