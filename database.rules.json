@@ -11,7 +11,7 @@
       "$listId": {
         ".read": "auth != null && root.child('lists').child($listId).child('members').child(auth.uid).exists()",
         ".write": "auth != null && ((!data.exists() && newData.child('owner').val() === auth.uid && newData.child('members').child(auth.uid).val() === true) || (data.exists() && root.child('lists').child($listId).child('members').child(auth.uid).exists()))",
-        ".validate": "!newData.exists() || (newData.child('owner').isString() && newData.child('owner').val().length > 0 && newData.child('listName').isString() && newData.child('listName').val().length <= 80 && newData.child('lastEditedBy').isString() && newData.child('lastEditedBy').val().length <= 32 && newData.child('members').child(newData.child('owner').val()).val() === true)",
+        ".validate": "!newData.exists() || (newData.child('owner').isString() && newData.child('owner').val().length > 0 && newData.child('listName').isString() && newData.child('listName').val().length <= 80 && ((newData.child('lastEditedByUid').isString() && newData.child('lastEditedByUid').val().length > 0 && newData.child('lastEditedByUid').val().length <= 128) || (newData.child('lastEditedBy').isString() && newData.child('lastEditedBy').val().length <= 32)) && newData.child('members').child(newData.child('owner').val()).val() === true)",
         "owner": {
           ".write": "auth != null && ((!data.exists() && newData.val() === auth.uid) || (data.exists() && data.val() === auth.uid && root.child('lists').child($listId).child('members').child(newData.val()).exists()))",
           ".validate": "newData.isString() && newData.val().length > 0"
@@ -21,6 +21,9 @@
         },
         "lastEditedBy": {
           ".validate": "newData.isString() && newData.val().length <= 32"
+        },
+        "lastEditedByUid": {
+          ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 128"
         },
         "members": {
           "$uid": {
@@ -37,7 +40,7 @@
         },
         "items": {
           "$itemId": {
-            ".validate": "!newData.exists() || (newData.child('itemName').isString() && newData.child('itemName').val().length > 0 && newData.child('itemName').val().length <= 140 && newData.child('itemHighlighted').isBoolean() && newData.child('lastEditedBy').isString() && newData.child('lastEditedBy').val().length <= 32)",
+            ".validate": "!newData.exists() || (newData.child('itemName').isString() && newData.child('itemName').val().length > 0 && newData.child('itemName').val().length <= 140 && newData.child('itemHighlighted').isBoolean() && ((newData.child('lastEditedByUid').isString() && newData.child('lastEditedByUid').val().length > 0 && newData.child('lastEditedByUid').val().length <= 128) || (newData.child('lastEditedBy').isString() && newData.child('lastEditedBy').val().length <= 32)))",
             "itemName": {
               ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 140"
             },
@@ -46,6 +49,9 @@
             },
             "lastEditedBy": {
               ".validate": "newData.isString() && newData.val().length <= 32"
+            },
+            "lastEditedByUid": {
+              ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 128"
             }
           }
         }

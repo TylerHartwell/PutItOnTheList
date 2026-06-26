@@ -2,14 +2,14 @@ export type ShoppingItem = {
   id: string
   itemName: string
   itemHighlighted: boolean
-  lastEditedBy: string
+  lastEditedByUid: string
 }
 
 export type StoredList = {
   listId: string
   listName: string
   ownerUid: string
-  lastEditedBy: string
+  lastEditedByUid: string
 }
 
 export type ListMember = {

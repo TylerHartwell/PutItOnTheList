@@ -65,7 +65,7 @@ export function useUserLists(user: User | null, activeUsername: string) {
       const listRecord = {
         owner: user.uid,
         listName: trimmedName,
-        lastEditedBy: activeUsername,
+        lastEditedByUid: user.uid,
         members: {
           [user.uid]: true
         },
@@ -182,7 +182,7 @@ export function useUserLists(user: User | null, activeUsername: string) {
               [`${LISTS_ROOT}/${listId}`]: {
                 owner: user.uid,
                 listName: localLegacyName,
-                lastEditedBy: activeUsername,
+                lastEditedByUid: user.uid,
                 members: {
                   [user.uid]: true
                 },
@@ -203,7 +203,7 @@ export function useUserLists(user: User | null, activeUsername: string) {
 
           const listValue = listSnapshot.val() as {
             owner?: unknown
-            lastEditedBy?: unknown
+            lastEditedByUid?: unknown
             listName?: unknown
           }
           const migrationUpdates: Record<string, string | boolean> = {
@@ -216,8 +216,8 @@ export function useUserLists(user: User | null, activeUsername: string) {
             migrationUpdates[`${LISTS_ROOT}/${listId}/owner`] = user.uid
           }
 
-          if (typeof listValue.lastEditedBy !== "string" || !listValue.lastEditedBy.trim()) {
-            migrationUpdates[`${LISTS_ROOT}/${listId}/lastEditedBy`] = activeUsername
+          if (typeof listValue.lastEditedByUid !== "string" || !listValue.lastEditedByUid.trim()) {
+            migrationUpdates[`${LISTS_ROOT}/${listId}/lastEditedByUid`] = user.uid
           }
 
           if (localLegacyName && (typeof listValue.listName !== "string" || !listValue.listName.trim())) {
@@ -349,14 +349,14 @@ export function useUserLists(user: User | null, activeUsername: string) {
             const listData = listSnapshot.val() as {
               listName?: unknown
               owner?: unknown
-              lastEditedBy?: unknown
+              lastEditedByUid?: unknown
             }
 
             return {
               listId,
               listName: typeof listData?.listName === "string" ? listData.listName : "",
               ownerUid: typeof listData?.owner === "string" ? listData.owner : "",
-              lastEditedBy: typeof listData?.lastEditedBy === "string" ? listData.lastEditedBy : ""
+              lastEditedByUid: typeof listData?.lastEditedByUid === "string" ? listData.lastEditedByUid : ""
             } satisfies StoredList
           } catch {
             // If list metadata cannot be read (deleted/permission removed), clean up stale user index entry.
@@ -472,23 +472,30 @@ export function useUserLists(user: User | null, activeUsername: string) {
         owner?: unknown
         members?: Record<string, unknown>
         memberProfiles?: Record<string, unknown>
-        lastEditedBy?: unknown
+        lastEditedByUid?: unknown
       }
 
       const ownerUid = typeof listData?.owner === "string" ? listData.owner : ""
       const membersValue = (listData?.members as Record<string, unknown> | undefined) ?? {}
       const memberProfilesValue = (listData?.memberProfiles as Record<string, unknown> | undefined) ?? {}
+      const lastEditedByUid = typeof listData?.lastEditedByUid === "string" ? listData.lastEditedByUid : ""
       const memberUids = Object.entries(membersValue)
         .filter(([, value]) => value === true)
         .map(([memberUid]) => memberUid)
 
+      const lastEditorProfile = (lastEditedByUid ? (memberProfilesValue[lastEditedByUid] as { username?: unknown } | undefined) : undefined) as
+        | { username?: unknown }
+        | undefined
+      const lastEditorUsername = typeof lastEditorProfile?.username === "string" ? lastEditorProfile.username.trim() : ""
+      const resolvedLastEditorName = lastEditorUsername || "Unknown"
+
       setCurrentListOwnerUid(ownerUid)
-      setCurrentListLastEditedBy(typeof listData?.lastEditedBy === "string" ? listData.lastEditedBy : "")
+      setCurrentListLastEditedBy(lastEditedByUid ? resolvedLastEditorName : "Unknown")
 
       const nextMembers = memberUids.map(memberUid => {
         const profile = memberProfilesValue[memberUid] as { username?: unknown } | undefined
         const profileUsername = typeof profile?.username === "string" ? profile.username.trim() : ""
-        const username = profileUsername || (memberUid === user.uid && activeUsername ? activeUsername : memberUid)
+        const username = profileUsername || "Unknown"
 
         return {
           uid: memberUid,
@@ -503,10 +510,9 @@ export function useUserLists(user: User | null, activeUsername: string) {
       for (const memberUid of memberUids) {
         const profile = memberProfilesValue[memberUid] as { username?: unknown } | undefined
         const currentUsername = typeof profile?.username === "string" ? profile.username.trim() : ""
-        const fallbackUsername = memberUid === user.uid && activeUsername ? activeUsername : memberUid
 
-        if (!currentUsername || (memberUid === user.uid && activeUsername && currentUsername !== activeUsername)) {
-          backfillUpdates[`${LISTS_ROOT}/${currentListId}/memberProfiles/${memberUid}/username`] = fallbackUsername
+        if (memberUid === user.uid && activeUsername && currentUsername !== activeUsername) {
+          backfillUpdates[`${LISTS_ROOT}/${currentListId}/memberProfiles/${memberUid}/username`] = activeUsername
         }
       }
 
@@ -591,7 +597,7 @@ export function useUserLists(user: User | null, activeUsername: string) {
     const trimmedName = normalizeText(newName)
     await update(ref(db), {
       [`${LISTS_ROOT}/${listId}/listName`]: trimmedName,
-      [`${LISTS_ROOT}/${listId}/lastEditedBy`]: activeUsername
+      [`${LISTS_ROOT}/${listId}/lastEditedByUid`]: user.uid
     })
 
     setStoredLists(previousLists =>
@@ -603,7 +609,7 @@ export function useUserLists(user: User | null, activeUsername: string) {
         return {
           ...list,
           listName: trimmedName,
-          lastEditedBy: activeUsername
+          lastEditedByUid: user.uid
         }
       })
     )

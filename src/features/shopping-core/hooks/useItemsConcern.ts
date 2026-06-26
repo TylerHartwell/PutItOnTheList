@@ -21,7 +21,7 @@ function readItemsFromSnapshot(rawValue: unknown): ShoppingItem[] {
       continue
     }
 
-    const itemValue = value as { itemName?: unknown; itemHighlighted?: unknown }
+    const itemValue = value as { itemName?: unknown; itemHighlighted?: unknown; lastEditedByUid?: unknown }
     if (typeof itemValue.itemName !== "string") {
       continue
     }
@@ -30,14 +30,14 @@ function readItemsFromSnapshot(rawValue: unknown): ShoppingItem[] {
       id,
       itemName: itemValue.itemName,
       itemHighlighted: typeof itemValue.itemHighlighted === "boolean" ? itemValue.itemHighlighted : false,
-      lastEditedBy: typeof (value as { lastEditedBy?: unknown }).lastEditedBy === "string" ? (value as { lastEditedBy: string }).lastEditedBy : ""
+      lastEditedByUid: typeof itemValue.lastEditedByUid === "string" ? itemValue.lastEditedByUid : ""
     })
   }
 
   return nextItems
 }
 
-export function useItemsConcern(user: User | null, currentListId: string, editorUsername: string) {
+export function useItemsConcern(user: User | null, currentListId: string, editorUid: string) {
   const [items, setItems] = useState<ShoppingItem[]>([])
   const [itemSource, setItemSource] = useState<ItemSource>("current")
   const [itemEntry, setItemEntry] = useState("")
@@ -95,14 +95,14 @@ export function useItemsConcern(user: User | null, currentListId: string, editor
       isMigratingLegacyItems = true
 
       const migrationUpdates: Record<string, unknown> = {
-        [`lists/${currentListId}/lastEditedBy`]: editorUsername
+        [`lists/${currentListId}/lastEditedByUid`]: editorUid
       }
 
       for (const legacyItem of nextLegacyItems) {
         migrationUpdates[`lists/${currentListId}/items/${legacyItem.id}`] = {
           itemName: legacyItem.itemName,
           itemHighlighted: legacyItem.itemHighlighted,
-          lastEditedBy: legacyItem.lastEditedBy || editorUsername
+          lastEditedByUid: legacyItem.lastEditedByUid || editorUid
         }
       }
 
@@ -140,7 +140,7 @@ export function useItemsConcern(user: User | null, currentListId: string, editor
       unsubscribeCurrent()
       unsubscribeLegacy()
     }
-  }, [currentListId, editorUsername, user])
+  }, [currentListId, editorUid, user])
 
   useEffect(() => {
     if (editingItemId && editInputRef.current) {
@@ -161,9 +161,9 @@ export function useItemsConcern(user: User | null, currentListId: string, editor
     push(ref(db, itemsPath), {
       itemName: inputValue,
       itemHighlighted: false,
-      lastEditedBy: editorUsername
+      lastEditedByUid: editorUid
     })
-    set(ref(db, `lists/${currentListId}/lastEditedBy`), editorUsername)
+    set(ref(db, `lists/${currentListId}/lastEditedByUid`), editorUid)
     vibrate()
 
     setItemEntry("")
@@ -179,9 +179,9 @@ export function useItemsConcern(user: User | null, currentListId: string, editor
 
     void update(ref(db, `${itemsPath}/${item.id}`), {
       itemHighlighted: !item.itemHighlighted,
-      lastEditedBy: editorUsername
+      lastEditedByUid: editorUid
     })
-    set(ref(db, `lists/${currentListId}/lastEditedBy`), editorUsername)
+    set(ref(db, `lists/${currentListId}/lastEditedByUid`), editorUid)
     vibrate()
   }
 
@@ -194,7 +194,7 @@ export function useItemsConcern(user: User | null, currentListId: string, editor
     const itemsPath = itemSource === "legacy" ? currentListId : `lists/${currentListId}/items`
 
     remove(ref(db, `${itemsPath}/${itemId}`))
-    set(ref(db, `lists/${currentListId}/lastEditedBy`), editorUsername)
+    set(ref(db, `lists/${currentListId}/lastEditedByUid`), editorUid)
     vibrate()
   }
 
@@ -206,13 +206,13 @@ export function useItemsConcern(user: User | null, currentListId: string, editor
     const db = database
     const itemsPath = itemSource === "legacy" ? currentListId : `lists/${currentListId}/items`
     const batchUpdates: Record<string, unknown> = {
-      [`lists/${currentListId}/lastEditedBy`]: editorUsername
+      [`lists/${currentListId}/lastEditedByUid`]: editorUid
     }
 
     for (const item of items) {
       if (item.itemHighlighted !== nextValue) {
         batchUpdates[`${itemsPath}/${item.id}/itemHighlighted`] = nextValue
-        batchUpdates[`${itemsPath}/${item.id}/lastEditedBy`] = editorUsername
+        batchUpdates[`${itemsPath}/${item.id}/lastEditedByUid`] = editorUid
       }
     }
 
@@ -233,7 +233,7 @@ export function useItemsConcern(user: User | null, currentListId: string, editor
     }
 
     const batchUpdates: Record<string, unknown> = {
-      [`lists/${currentListId}/lastEditedBy`]: editorUsername
+      [`lists/${currentListId}/lastEditedByUid`]: editorUid
     }
 
     for (const item of items) {
@@ -260,7 +260,7 @@ export function useItemsConcern(user: User | null, currentListId: string, editor
 
     void update(ref(db), {
       [itemsPath]: null,
-      [`lists/${currentListId}/lastEditedBy`]: editorUsername
+      [`lists/${currentListId}/lastEditedByUid`]: editorUid
     })
     vibrate()
   }
@@ -288,11 +288,11 @@ export function useItemsConcern(user: User | null, currentListId: string, editor
     } else {
       void update(ref(db, `${itemsPath}/${editingItemId}`), {
         itemName: trimmedName,
-        lastEditedBy: editorUsername
+        lastEditedByUid: editorUid
       })
     }
 
-    set(ref(db, `lists/${currentListId}/lastEditedBy`), editorUsername)
+    set(ref(db, `lists/${currentListId}/lastEditedByUid`), editorUid)
     vibrate()
     setEditingItemId(null)
     setEditingItemText("")
