@@ -23,6 +23,7 @@ type SettingsModalProps = DialogHTMLAttributes<HTMLDialogElement> & {
   currentListNameInput: string
   newListNameInput: string
   joinListIdInput: string
+  joinListError: string
   onCopyList: () => Promise<boolean>
   onCurrentListNameChange: (value: string) => void
   onSaveCurrentListName: () => void
@@ -45,6 +46,7 @@ export function SettingsModal({
   currentListNameInput,
   newListNameInput,
   joinListIdInput,
+  joinListError,
   onCopyList,
   onCurrentListNameChange,
   onSaveCurrentListName,
@@ -131,7 +133,12 @@ export function SettingsModal({
 
         <ListCreateForm onCreateList={onCreateList} newListNameInput={newListNameInput} onNewListNameChange={onNewListNameChange} />
 
-        <ListJoinForm onJoinList={onJoinList} joinListIdInput={joinListIdInput} onJoinListIdChange={onJoinListIdChange} />
+        <ListJoinForm
+          onJoinList={onJoinList}
+          joinListIdInput={joinListIdInput}
+          joinListError={joinListError}
+          onJoinListIdChange={onJoinListIdChange}
+        />
 
         <section className="mt-3 border-t border-[#d8d8d8] p-2">
           <h3 className="mb-2.5 text-base">Members</h3>

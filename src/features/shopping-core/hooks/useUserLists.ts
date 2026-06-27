@@ -682,17 +682,30 @@ export function useUserLists(user: User | null, activeUsername: string) {
     }
 
     const db = database
+    const trimmedListId = listIdToJoin.trim()
+
+    if (!trimmedListId) {
+      throw new Error("Enter a list number to join.")
+    }
 
     // Check if user is already in this list
-    if (storedLists.some(list => list.listId === listIdToJoin)) {
+    if (storedLists.some(list => list.listId === trimmedListId)) {
+      setCurrentListId(trimmedListId)
       return
     }
 
+    const listSnapshot = await get(ref(db, `${LISTS_ROOT}/${trimmedListId}`))
+    if (!listSnapshot.exists()) {
+      throw new Error("That list number was not found.")
+    }
+
     await update(ref(db), {
-      [`${LISTS_ROOT}/${listIdToJoin}/members/${user.uid}`]: true,
-      [`${LISTS_ROOT}/${listIdToJoin}/memberProfiles/${user.uid}/username`]: activeUsername,
-      [`users/${user.uid}/${LISTS_ROOT}/${listIdToJoin}`]: true
+      [`${LISTS_ROOT}/${trimmedListId}/members/${user.uid}`]: true,
+      [`${LISTS_ROOT}/${trimmedListId}/memberProfiles/${user.uid}/username`]: activeUsername,
+      [`users/${user.uid}/${LISTS_ROOT}/${trimmedListId}`]: true
     })
+
+    setCurrentListId(trimmedListId)
   }
 
   async function removeMember(memberUid: string) {

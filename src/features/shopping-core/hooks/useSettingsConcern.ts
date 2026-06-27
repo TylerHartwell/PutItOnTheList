@@ -10,14 +10,23 @@ export type SettingsConcernParams = {
 export function useSettingsConcern({ userLists }: SettingsConcernParams) {
   const [currentListNameInput, setCurrentListNameInput] = useState("")
   const [newListNameInput, setNewListNameInput] = useState("")
-  const [joinListIdInput, setJoinListIdInput] = useState("")
+  const [joinListIdInput, setJoinListIdInputState] = useState("")
+  const [joinListError, setJoinListError] = useState("")
   const [isOpen, setIsOpen] = useState(false)
 
   function openSettingsModal() {
     setCurrentListNameInput(userLists.storedLists.find(list => list.listId === userLists.currentListId)?.listName ?? "")
+    setJoinListError("")
     setIsOpen(true)
     // prevent scrolling while modal is open
     document.body.style.overflow = "hidden"
+  }
+
+  function setJoinListIdInput(value: string) {
+    setJoinListIdInputState(value)
+    if (joinListError) {
+      setJoinListError("")
+    }
   }
 
   function leaveList() {
@@ -37,16 +46,19 @@ export function useSettingsConcern({ userLists }: SettingsConcernParams) {
   async function joinList() {
     const listIdToJoin = joinListIdInput.trim()
     if (!listIdToJoin) {
+      setJoinListError("Enter a list number.")
       return
     }
 
     try {
       await userLists.joinList(listIdToJoin)
-      setJoinListIdInput("")
+      setJoinListIdInputState("")
+      setJoinListError("")
       setIsOpen(false)
       vibrate()
-    } catch {
-      setJoinListIdInput("")
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : "Could not join that list right now."
+      setJoinListError(errorMessage)
     }
   }
 
@@ -101,6 +113,7 @@ export function useSettingsConcern({ userLists }: SettingsConcernParams) {
     setNewListNameInput,
     joinListIdInput,
     setJoinListIdInput,
+    joinListError,
     openSettingsModal,
     leaveList,
     joinList,

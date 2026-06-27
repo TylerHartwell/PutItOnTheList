@@ -3,10 +3,11 @@ import { SettingsButton } from "./SettingsButton"
 type ListJoinFormProps = {
   onJoinList: () => Promise<void>
   joinListIdInput: string
+  joinListError: string
   onJoinListIdChange: (value: string) => void
 }
 
-const ListJoinForm = ({ onJoinList, joinListIdInput, onJoinListIdChange }: ListJoinFormProps) => {
+const ListJoinForm = ({ onJoinList, joinListIdInput, joinListError, onJoinListIdChange }: ListJoinFormProps) => {
   return (
     <form
       className="mt-3 border-t border-[#d8d8d8] p-2"
@@ -30,6 +31,11 @@ const ListJoinForm = ({ onJoinList, joinListIdInput, onJoinListIdChange }: ListJ
         />
         <SettingsButton type="submit">Join</SettingsButton>
       </div>
+      {joinListError ? (
+        <p role="alert" className="mt-1 text-sm text-[#8f2a2a]">
+          {joinListError}
+        </p>
+      ) : null}
     </form>
   )
 }
