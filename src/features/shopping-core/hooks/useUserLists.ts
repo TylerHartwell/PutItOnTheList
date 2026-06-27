@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react"
 import { get, onValue, ref, runTransaction, update } from "firebase/database"
+import { FirebaseError } from "firebase/app"
 import { type User } from "firebase/auth"
 import { database } from "@/shared/lib/firebase"
 import { normalizeText } from "@/shared/utils/text"
@@ -694,16 +695,29 @@ export function useUserLists(user: User | null, activeUsername: string) {
       return
     }
 
-    const listSnapshot = await get(ref(db, `${LISTS_ROOT}/${trimmedListId}`))
-    if (!listSnapshot.exists()) {
-      throw new Error("That list number was not found.")
-    }
+    try {
+      // Add membership first. The list read rules block non-members from reading metadata,
+      // so joining should rely on writes instead of a preflight read.
+      await update(ref(db), {
+        [`${LISTS_ROOT}/${trimmedListId}/members/${user.uid}`]: true,
+        [`users/${user.uid}/${LISTS_ROOT}/${trimmedListId}`]: true
+      })
 
-    await update(ref(db), {
-      [`${LISTS_ROOT}/${trimmedListId}/members/${user.uid}`]: true,
-      [`${LISTS_ROOT}/${trimmedListId}/memberProfiles/${user.uid}/username`]: activeUsername,
-      [`users/${user.uid}/${LISTS_ROOT}/${trimmedListId}`]: true
-    })
+      // Backfill profile after membership exists.
+      await update(ref(db), {
+        [`${LISTS_ROOT}/${trimmedListId}/memberProfiles/${user.uid}/username`]: activeUsername
+      })
+    } catch (error) {
+      const isPermissionDenied =
+        error instanceof FirebaseError &&
+        (error.code === "PERMISSION_DENIED" || error.code === "permission-denied" || error.code.endsWith("/permission-denied"))
+
+      if (isPermissionDenied) {
+        throw new Error("That list number was not found.")
+      }
+
+      throw error
+    }
 
     setCurrentListId(trimmedListId)
   }
