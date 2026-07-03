@@ -1,38 +1,23 @@
 import { Loader2, Mail } from "lucide-react"
+import { useEmailLinkContextValue } from "@/shared/lib/bundleContext"
 
-type EmailLinkSignInFormCardProps = {
-  emailInput: string
-  onEmailInputChange: (value: string) => void
-  onSubmitGoogleSignIn: () => void
-  manualLinkInput: string
-  onManualLinkInputChange: (value: string) => void
-  onSubmitEmailLink: () => void
-  onSubmitManualSignInLink: () => void
-  sending: boolean
-  completing: boolean
-  googleSigningIn: boolean
-  statusMessage: string
-  errorMessage: string
-  isSignInLink: boolean
-  hasAuthConfig: boolean
-}
+export function EmailLinkSignInFormCard() {
+  const {
+    emailInput,
+    onEmailInputChange,
+    onSubmitGoogleSignIn,
+    manualLinkInput,
+    onManualLinkInputChange,
+    onSubmitEmailLink,
+    onSubmitManualSignInLink,
+    sending,
+    completing,
+    googleSigningIn,
+    statusMessage,
+    errorMessage,
+    isSignInLink
+  } = useEmailLinkContextValue()
 
-export function EmailLinkSignInFormCard({
-  emailInput,
-  onEmailInputChange,
-  onSubmitGoogleSignIn,
-  manualLinkInput,
-  onManualLinkInputChange,
-  onSubmitEmailLink,
-  onSubmitManualSignInLink,
-  sending,
-  completing,
-  googleSigningIn,
-  statusMessage,
-  errorMessage,
-  isSignInLink,
-  hasAuthConfig
-}: EmailLinkSignInFormCardProps) {
   const isAnySignInBusy = sending || completing || googleSigningIn
 
   async function pasteManualLinkFromClipboard() {
@@ -197,9 +182,6 @@ export function EmailLinkSignInFormCard({
 
       {statusMessage ? <p className="mt-4 rounded-2xl bg-[#eef5ef] px-4 py-3 text-sm text-[#2f5a3f]">{statusMessage}</p> : null}
       {errorMessage ? <p className="mt-4 rounded-2xl bg-[#ffe9e4] px-4 py-3 text-sm text-[#9d3d27]">{errorMessage}</p> : null}
-      {!hasAuthConfig ? (
-        <p className="mt-4 text-xs leading-5 text-[#8f6f50]">Add the Firebase web app env vars before using email-link auth.</p>
-      ) : null}
     </div>
   )
 }

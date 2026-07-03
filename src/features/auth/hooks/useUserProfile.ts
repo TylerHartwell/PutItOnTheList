@@ -3,8 +3,8 @@
 import { useEffect, useState } from "react"
 import { updateProfile, type User } from "firebase/auth"
 import { get, onValue, ref, remove, runTransaction, update } from "firebase/database"
-import { database, firebaseDatabaseUnavailableMessage } from "@/shared/lib/firebase"
-import type { UserProfileRecord } from "@/shared/types/user"
+import { database } from "@/shared/lib/firebase"
+import type { UserAccountState, UserProfileRecord } from "@/shared/types/user"
 
 const USERS_ROOT = "users"
 const USERNAMES_ROOT = "usernames"
@@ -42,7 +42,7 @@ function getFriendlyError(error: unknown) {
 }
 
 function getDatabaseUnavailableError() {
-  return firebaseDatabaseUnavailableMessage
+  return "Firebase database is not configured. Set NEXT_PUBLIC_FIREBASE_DATABASE_URL in Netlify and redeploy."
 }
 
 function buildProfileSnapshot(user: User, rawProfile: Partial<UserProfileRecord> | null): UserProfileRecord {
@@ -56,19 +56,6 @@ function buildProfileSnapshot(user: User, rawProfile: Partial<UserProfileRecord>
     createdAt: typeof rawProfile?.createdAt === "number" ? rawProfile.createdAt : now,
     updatedAt: typeof rawProfile?.updatedAt === "number" ? rawProfile.updatedAt : now
   }
-}
-
-export type UserAccountState = {
-  profile: UserProfileRecord | null
-  isLoading: boolean
-  requiresUsernameSetup: boolean
-  usernameInput: string
-  setUsernameInput: (value: string) => void
-  usernameValidationMessage: string
-  isSavingUsername: boolean
-  statusMessage: string
-  errorMessage: string
-  saveUsername: () => Promise<void>
 }
 
 export function useUserProfile(user: User | null): UserAccountState {

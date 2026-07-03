@@ -299,24 +299,7 @@ export function useUserLists(user: User | null, activeUsername: string) {
   useEffect(() => {
     let isCancelled = false
 
-    if (!database) {
-      hasResolvedInitialCurrentListRef.current = false
-      Promise.resolve().then(() => {
-        if (isCancelled) {
-          return
-        }
-
-        setStoredLists([])
-        setCurrentListId("")
-        setIsLoading(false)
-      })
-
-      return () => {
-        isCancelled = true
-      }
-    }
-
-    if (!user) {
+    if (!database || !user) {
       hasResolvedInitialCurrentListRef.current = false
       Promise.resolve().then(() => {
         if (isCancelled) {
@@ -446,23 +429,7 @@ export function useUserLists(user: User | null, activeUsername: string) {
   useEffect(() => {
     let isCancelled = false
 
-    if (!database) {
-      Promise.resolve().then(() => {
-        if (isCancelled) {
-          return
-        }
-
-        setCurrentListMembers([])
-        setCurrentListOwnerUid("")
-        setCurrentListLastEditedBy("")
-      })
-
-      return () => {
-        isCancelled = true
-      }
-    }
-
-    if (!user || !currentListId) {
+    if (!database || !user || !currentListId) {
       Promise.resolve().then(() => {
         if (isCancelled) {
           return
@@ -615,14 +582,7 @@ export function useUserLists(user: User | null, activeUsername: string) {
         [`users/${user.uid}/${LISTS_ROOT}/${listIdToLeave}`]: null
       })
 
-      if (listIdToLeave === currentListId) {
-        const remainingLists = storedLists.filter(list => list.listId !== listIdToLeave)
-        if (remainingLists.length > 0) {
-          setCurrentListId(remainingLists[0].listId)
-        } else {
-          await ensureDefaultList()
-        }
-      }
+      switchListIfCurrent(listIdToLeave)
 
       return
     } else {
@@ -633,14 +593,16 @@ export function useUserLists(user: User | null, activeUsername: string) {
       })
     }
 
-    // If this was the current list, switch to another one
-    if (listIdToLeave === currentListId) {
-      const remainingLists = storedLists.filter(list => list.listId !== listIdToLeave)
-      if (remainingLists.length > 0) {
-        setCurrentListId(remainingLists[0].listId)
-      } else {
-        // Create a default list if none remain
-        await ensureDefaultList()
+    switchListIfCurrent(listIdToLeave)
+
+    function switchListIfCurrent(listId: string) {
+      if (listId === currentListId) {
+        const remainingLists = storedLists.filter(list => list.listId !== listId)
+        if (remainingLists.length > 0) {
+          setCurrentListId(remainingLists[0].listId)
+        } else {
+          void ensureDefaultList()
+        }
       }
     }
   }

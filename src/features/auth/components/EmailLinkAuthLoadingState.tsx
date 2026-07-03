@@ -1,5 +1,3 @@
-"use client"
-
 import { Loader2 } from "lucide-react"
 
 export function EmailLinkAuthLoadingState() {
@@ -11,8 +9,8 @@ export function EmailLinkAuthLoadingState() {
         <div className="rounded-4xl border border-white/70 bg-white/85 px-8 py-10 text-center shadow-[0_24px_80px_rgba(67,32,0,0.16)] backdrop-blur">
           <Loader2 className="mx-auto mb-4 h-8 w-8 animate-spin text-[#8a6d45]" />
           <p className="text-sm uppercase tracking-[0.35em] text-[#8a6d45]">Checking session</p>
-          <h1 className="mt-3 text-3xl font-medium">Opening your list</h1>
-          <p className="mt-2 text-sm text-[#5f4a31]">Verifying your Firebase sign-in link and restoring your shopping lists.</p>
+          <h1 className="mt-3 text-3xl font-medium">Opening your lists</h1>
+          <p className="mt-2 text-sm text-[#5f4a31]">Verifying sign-in and restoring your shopping lists.</p>
         </div>
       </div>
     </div>

@@ -15,27 +15,24 @@ import {
   signOut,
   type User
 } from "firebase/auth"
-import { auth, firebaseAuthReady, firebaseAuthUnavailableMessage } from "@/shared/lib/firebase"
+import { firebaseAuth } from "@/shared/lib/firebase"
 import { useUserProfile } from "./useUserProfile"
+import { decodeAmpersandEntity } from "@/shared/utils/text"
 
 const PENDING_EMAIL_KEY = "putitonthelist.pendingEmailForSignIn"
-const AUTH_UNAVAILABLE_MESSAGE = firebaseAuthUnavailableMessage
+const AUTH_UNAVAILABLE_MESSAGE = "Firebase auth is not configured. Set the Firebase web app env vars in Netlify and redeploy."
 const FIREBASE_AUTH_QUERY_KEYS = ["apiKey", "oobCode", "mode", "lang", "continueUrl", "continue_url"] as const
 const NESTED_LINK_QUERY_KEYS = ["continueUrl", "continue_url", "link", "deep_link_id", "url"] as const
 
-function decodeHtmlEntities(value: string) {
-  return value.replaceAll("&amp;", "&")
-}
-
 function normalizePastedLinkInput(rawInput: string) {
-  const withDecodedEntities = decodeHtmlEntities(rawInput).trim()
+  const withDecodedEntities = decodeAmpersandEntity(rawInput).trim()
   const match = withDecodedEntities.match(/https?:\/\/\S+/i)
   const urlLikeValue = match ? match[0] : withDecodedEntities
 
   return urlLikeValue.replace(/^[<\"']+|[>\"']+$/g, "")
 }
 
-function resolveEmailSignInLink(rawInput: string, firebaseAuth: NonNullable<typeof auth>) {
+function resolveEmailSignInLink(rawInput: string, auth: NonNullable<typeof firebaseAuth>) {
   const initialCandidate = normalizePastedLinkInput(rawInput)
   if (!initialCandidate) {
     return ""
@@ -52,7 +49,7 @@ function resolveEmailSignInLink(rawInput: string, firebaseAuth: NonNullable<type
 
     visited.add(current)
 
-    if (isSignInWithEmailLink(firebaseAuth, current)) {
+    if (isSignInWithEmailLink(auth, current)) {
       return current
     }
 
@@ -62,7 +59,7 @@ function resolveEmailSignInLink(rawInput: string, firebaseAuth: NonNullable<type
       for (const nestedKey of NESTED_LINK_QUERY_KEYS) {
         const nestedValue = parsed.searchParams.get(nestedKey)
         if (nestedValue) {
-          urlsToInspect.push(decodeHtmlEntities(nestedValue))
+          urlsToInspect.push(decodeAmpersandEntity(nestedValue))
         }
       }
 
@@ -71,7 +68,7 @@ function resolveEmailSignInLink(rawInput: string, firebaseAuth: NonNullable<type
         for (const nestedKey of NESTED_LINK_QUERY_KEYS) {
           const nestedHashValue = hashParams.get(nestedKey)
           if (nestedHashValue) {
-            urlsToInspect.push(decodeHtmlEntities(nestedHashValue))
+            urlsToInspect.push(decodeAmpersandEntity(nestedHashValue))
           }
         }
       }
@@ -165,7 +162,6 @@ function getErrorCode(error: unknown) {
 }
 
 export function useEmailLinkAuth() {
-  const firebaseAuth = auth
   const [user, setUser] = useState<User | null>(null)
   const [emailInput, setEmailInput] = useState("")
   const [manualLinkInput, setManualLinkInput] = useState("")
@@ -178,49 +174,46 @@ export function useEmailLinkAuth() {
   const [isSignInLink, setIsSignInLink] = useState(false)
   const account = useUserProfile(user)
 
-  const completeSignInFromLink = useCallback(
-    async (signInUrl: string, preferredEmail = "") => {
-      if (!firebaseAuth) {
-        setErrorMessage(AUTH_UNAVAILABLE_MESSAGE)
-        return false
-      }
+  const completeSignInFromLink = useCallback(async (signInUrl: string, preferredEmail = "") => {
+    if (!firebaseAuth) {
+      setErrorMessage(AUTH_UNAVAILABLE_MESSAGE)
+      return false
+    }
 
-      if (typeof window === "undefined") {
-        return false
-      }
+    if (typeof window === "undefined") {
+      return false
+    }
 
-      const storedEmail = window.localStorage.getItem(PENDING_EMAIL_KEY) ?? ""
-      const hintedEmail = parseEmailHintFromUrl(signInUrl)
-      const emailToUse = preferredEmail.trim() || storedEmail || hintedEmail
+    const storedEmail = window.localStorage.getItem(PENDING_EMAIL_KEY) ?? ""
+    const hintedEmail = parseEmailHintFromUrl(signInUrl)
+    const emailToUse = preferredEmail.trim() || storedEmail || hintedEmail
 
-      if (!emailToUse) {
-        setStatusMessage("Enter the email address you used to request the link.")
-        return false
-      }
+    if (!emailToUse) {
+      setStatusMessage("Enter the email address you used to request the link.")
+      return false
+    }
 
-      setErrorMessage("")
-      setEmailInput(emailToUse)
-      setCompleting(true)
+    setErrorMessage("")
+    setEmailInput(emailToUse)
+    setCompleting(true)
 
-      try {
-        await setPersistence(firebaseAuth, browserLocalPersistence)
-        const credential = await signInWithEmailLink(firebaseAuth, emailToUse, signInUrl)
-        window.localStorage.removeItem(PENDING_EMAIL_KEY)
-        clearFirebaseAuthQueryParamsFromCurrentUrl()
+    try {
+      await setPersistence(firebaseAuth, browserLocalPersistence)
+      const credential = await signInWithEmailLink(firebaseAuth, emailToUse, signInUrl)
+      window.localStorage.removeItem(PENDING_EMAIL_KEY)
+      clearFirebaseAuthQueryParamsFromCurrentUrl()
 
-        setUser(credential.user)
-        setManualLinkInput("")
-        setStatusMessage("")
-        return true
-      } catch (error) {
-        setErrorMessage(getFriendlyError(error))
-        return false
-      } finally {
-        setCompleting(false)
-      }
-    },
-    [firebaseAuth]
-  )
+      setUser(credential.user)
+      setManualLinkInput("")
+      setStatusMessage("")
+      return true
+    } catch (error) {
+      setErrorMessage(getFriendlyError(error))
+      return false
+    } finally {
+      setCompleting(false)
+    }
+  }, [])
 
   useEffect(() => {
     if (!firebaseAuth) {
@@ -243,7 +236,7 @@ export function useEmailLinkAuth() {
     })
 
     const completeLinkIfPresent = async () => {
-      if (typeof window === "undefined") {
+      if (typeof window === "undefined" || !firebaseAuth) {
         return
       }
 
@@ -264,6 +257,10 @@ export function useEmailLinkAuth() {
     }
 
     const restoreGoogleRedirectResult = async () => {
+      if (!firebaseAuth) {
+        return
+      }
+
       try {
         const redirectResult = await getRedirectResult(firebaseAuth)
 
@@ -289,7 +286,7 @@ export function useEmailLinkAuth() {
       isCancelled = true
       unsubscribe()
     }
-  }, [firebaseAuth, completeSignInFromLink])
+  }, [completeSignInFromLink])
 
   async function submitGoogleSignIn() {
     if (!firebaseAuth) {
@@ -442,7 +439,6 @@ export function useEmailLinkAuth() {
     statusMessage,
     errorMessage,
     isSignInLink,
-    hasAuthConfig: firebaseAuthReady,
     account,
     submitEmailLink,
     submitGoogleSignIn,

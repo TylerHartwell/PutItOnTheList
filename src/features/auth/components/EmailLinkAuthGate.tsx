@@ -6,7 +6,7 @@ import { EmailLinkAuthLoadingState } from "./EmailLinkAuthLoadingState"
 import { EmailLinkSignInView } from "./EmailLinkSignInView"
 import { EmailLinkSignedInBar } from "./EmailLinkSignedInBar"
 import { UsernameSetupView } from "./UsernameSetupView"
-import { AuthContext } from "@/shared/lib/auth-context"
+import { AuthContextProvider, EmailLinkContextProvider } from "@/shared/lib/bundleContext"
 
 type EmailLinkAuthGateProps = {
   children: ReactNode
@@ -26,7 +26,6 @@ export function EmailLinkAuthGate({ children }: EmailLinkAuthGateProps) {
     statusMessage,
     errorMessage,
     isSignInLink,
-    hasAuthConfig,
     account,
     submitEmailLink,
     submitGoogleSignIn,
@@ -40,22 +39,25 @@ export function EmailLinkAuthGate({ children }: EmailLinkAuthGateProps) {
 
   if (!user) {
     return (
-      <EmailLinkSignInView
-        emailInput={emailInput}
-        onEmailInputChange={setEmailInput}
-        onSubmitGoogleSignIn={submitGoogleSignIn}
-        manualLinkInput={manualLinkInput}
-        onManualLinkInputChange={setManualLinkInput}
-        onSubmitEmailLink={submitEmailLink}
-        onSubmitManualSignInLink={submitManualSignInLink}
-        sending={sending}
-        completing={completing}
-        googleSigningIn={googleSigningIn}
-        statusMessage={statusMessage}
-        errorMessage={errorMessage}
-        isSignInLink={isSignInLink}
-        hasAuthConfig={hasAuthConfig}
-      />
+      <EmailLinkContextProvider
+        value={{
+          sending,
+          completing,
+          googleSigningIn,
+          isSignInLink,
+          emailInput,
+          manualLinkInput,
+          statusMessage,
+          errorMessage,
+          onEmailInputChange: setEmailInput,
+          onSubmitGoogleSignIn: submitGoogleSignIn,
+          onManualLinkInputChange: setManualLinkInput,
+          onSubmitEmailLink: submitEmailLink,
+          onSubmitManualSignInLink: submitManualSignInLink
+        }}
+      >
+        <EmailLinkSignInView />
+      </EmailLinkContextProvider>
     )
   }
 
@@ -64,10 +66,10 @@ export function EmailLinkAuthGate({ children }: EmailLinkAuthGateProps) {
   }
 
   return (
-    <AuthContext.Provider value={{ user, account }}>
+    <AuthContextProvider value={{ user, account }}>
       <EmailLinkSignedInBar statusMessage={statusMessage} errorMessage={errorMessage} onSignOut={handleSignOut} account={account}>
         {children}
       </EmailLinkSignedInBar>
-    </AuthContext.Provider>
+    </AuthContextProvider>
   )
 }

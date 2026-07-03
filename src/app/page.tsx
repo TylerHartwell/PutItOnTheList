@@ -3,15 +3,15 @@
 import Image from "next/image"
 import { EmailLinkAuthGate } from "@/features/auth/components/EmailLinkAuthGate"
 import { useShoppingList } from "@/features/shopping-core/hooks/useShoppingList"
-import { useAuth } from "@/shared/lib/auth-context"
 import { ListSelectorBar } from "@/features/list-selector/components/ListSelectorBar"
 import { SettingsModal } from "@/features/list-settings/components/SettingsModal"
 import { ItemComposer } from "@/features/list-items/components/ItemComposer"
 import { ItemsList } from "@/features/list-items/components/ItemsList"
 import { BulkActions } from "@/features/list-items/components/BulkActions"
+import { useAuthContextValue } from "@/shared/lib/bundleContext"
 
 function ShoppingListContent() {
-  const { user, account } = useAuth()
+  const { user, account } = useAuthContextValue()
   const activeUsername = account.profile?.username || user?.uid || ""
   const { lists, items: itemsState, settings } = useShoppingList(user, activeUsername)
 
