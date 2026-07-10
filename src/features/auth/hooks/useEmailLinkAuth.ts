@@ -17,20 +17,12 @@ import {
 } from "firebase/auth"
 import { firebaseAuth } from "@/shared/lib/firebase"
 import { useUserProfile } from "./useUserProfile"
-import { decodeAmpersandEntity } from "@/shared/utils/text"
+import { decodeAmpersandEntity, normalizePastedLinkInput } from "@/shared/utils/text"
 
 const PENDING_EMAIL_KEY = "putitonthelist.pendingEmailForSignIn"
 const AUTH_UNAVAILABLE_MESSAGE = "Firebase auth is not configured. Set the Firebase web app env vars in Netlify and redeploy."
 const FIREBASE_AUTH_QUERY_KEYS = ["apiKey", "oobCode", "mode", "lang", "continueUrl", "continue_url"] as const
 const NESTED_LINK_QUERY_KEYS = ["continueUrl", "continue_url", "link", "deep_link_id", "url"] as const
-
-function normalizePastedLinkInput(rawInput: string) {
-  const withDecodedEntities = decodeAmpersandEntity(rawInput).trim()
-  const match = withDecodedEntities.match(/https?:\/\/\S+/i)
-  const urlLikeValue = match ? match[0] : withDecodedEntities
-
-  return urlLikeValue.replace(/^[<\"']+|[>\"']+$/g, "")
-}
 
 function resolveEmailSignInLink(rawInput: string, auth: NonNullable<typeof firebaseAuth>) {
   const initialCandidate = normalizePastedLinkInput(rawInput)

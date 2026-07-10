@@ -7,7 +7,7 @@ type ListEditFormProps = {
   onCurrentListNameChange: (value: string) => void
   onSaveCurrentListName: () => void
   onLeaveList: () => void
-  handleCopyList: () => void
+  onCopyList: () => void
 }
 
 const ListEditForm = ({
@@ -17,7 +17,7 @@ const ListEditForm = ({
   onCurrentListNameChange,
   onSaveCurrentListName,
   onLeaveList,
-  handleCopyList
+  onCopyList
 }: ListEditFormProps) => {
   return (
     <form
@@ -46,7 +46,7 @@ const ListEditForm = ({
             </div>
           ) : null}
 
-          <SettingsButton type="button" onClick={() => void handleCopyList()}>
+          <SettingsButton type="button" onClick={onCopyList}>
             Copy
           </SettingsButton>
         </div>

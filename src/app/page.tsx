@@ -35,8 +35,8 @@ function ShoppingListContent() {
         newListNameInput={settings.newListNameInput}
         joinListIdInput={settings.joinListIdInput}
         joinListError={settings.joinListError}
-        onCopyList={settings.copyList}
-        onCurrentListNameChange={settings.setCurrentListNameInput}
+        copyList={settings.copyList}
+        onCurrentListNameChange={settings.changeCurrentListNameInput}
         onSaveCurrentListName={settings.editListName}
         onLeaveList={settings.leaveList}
         onNewListNameChange={settings.setNewListNameInput}

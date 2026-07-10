@@ -14,12 +14,14 @@ export function useSettingsConcern({ userLists }: SettingsConcernParams) {
   const [joinListError, setJoinListError] = useState("")
   const [isOpen, setIsOpen] = useState(false)
 
+  function changeCurrentListNameInput(value: string) {
+    setCurrentListNameInput(value)
+  }
+
   function openSettingsModal() {
-    setCurrentListNameInput(userLists.storedLists.find(list => list.listId === userLists.currentListId)?.listName ?? "")
+    changeCurrentListNameInput(userLists.storedLists.find(list => list.listId === userLists.currentListId)?.listName ?? "")
     setJoinListError("")
     setIsOpen(true)
-    // prevent scrolling while modal is open
-    document.body.style.overflow = "hidden"
   }
 
   function setJoinListIdInput(value: string) {
@@ -108,7 +110,7 @@ export function useSettingsConcern({ userLists }: SettingsConcernParams) {
 
   return {
     currentListNameInput,
-    setCurrentListNameInput,
+    changeCurrentListNameInput,
     newListNameInput,
     setNewListNameInput,
     joinListIdInput,

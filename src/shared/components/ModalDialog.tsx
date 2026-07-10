@@ -1,82 +1,80 @@
-import {
-  type AriaAttributes,
-  DialogHTMLAttributes,
-  type PropsWithChildren,
-  type Ref,
-  type SyntheticEvent,
-  useEffect,
-  useImperativeHandle,
-  useRef,
-  useState
-} from "react"
+import { type AriaAttributes, DialogHTMLAttributes, type PropsWithChildren, useEffect, useRef } from "react"
 import { cn } from "../lib/cn"
 
-type ModalDialogIsOpenProps =
-  | {
-      isOpen: boolean
-      setIsOpen: (value: boolean) => void
-    }
-  | {
-      isOpen?: never
-      setIsOpen?: never
-    }
+type ModalDialogIsOpenProps = {
+  isOpen: boolean
+  setIsOpen: (value: boolean) => void
+}
 
 export type ModalDialogProps = PropsWithChildren &
   DialogHTMLAttributes<HTMLDialogElement> &
   ModalDialogIsOpenProps &
   Pick<AriaAttributes, "aria-labelledby" | "aria-label" | "aria-describedby"> & {
-    ref?: Ref<ModalDialogRef>
     shouldLightDismiss?: boolean
-    initialOpen?: boolean
-    onClose?: (event?: SyntheticEvent) => void
     isScrolledBottom?: boolean
   }
 
-export interface ModalDialogRef extends Pick<HTMLDialogElement, "addEventListener" | "removeEventListener" | "close" | "showModal"> {
-  isOpen: () => boolean
-}
-
-function safelyOpenDialogAsModal(dialog: HTMLDialogElement | null) {
+function safelyOpenDialogAsModal(
+  dialog: HTMLDialogElement | null,
+  previousOverflowRef: { current: string | null },
+  bodyOverflowWasChangedRef: { current: boolean }
+) {
   if (dialog && !dialog.open) {
     dialog.showModal()
+    // prevent body scrolling while modal is open
+    previousOverflowRef.current = document.body.style.overflow
+    document.body.style.overflow = "hidden"
+    bodyOverflowWasChangedRef.current = true
+  }
+}
+
+function safelyCloseDialog(
+  dialog: HTMLDialogElement | null,
+  previousOverflowRef: { current: string | null },
+  bodyOverflowWasChangedRef: { current: boolean }
+) {
+  if (dialog && dialog.open) {
+    dialog.close()
+    // restore body scrolling to what it was before this dialog opened
+    if (bodyOverflowWasChangedRef.current && previousOverflowRef.current !== null) {
+      document.body.style.overflow = previousOverflowRef.current
+      previousOverflowRef.current = null
+      bodyOverflowWasChangedRef.current = false
+    }
   }
 }
 
 export const ModalDialog = function ({
   shouldLightDismiss = true,
-  initialOpen = false,
-  isOpen: controlledOpen,
-  setIsOpen: setControlledOpen,
+  isOpen,
+  setIsOpen,
   children,
   className,
-  ref,
   isScrolledBottom,
   ...props
 }: ModalDialogProps) {
-  const [uncontrolledOpen, setUncontrolledOpen] = useState(initialOpen)
   const dialogRef = useRef<HTMLDialogElement>(null)
-
-  const isOpen = controlledOpen ?? uncontrolledOpen
-  const setIsOpen = setControlledOpen ?? setUncontrolledOpen
+  const previousBodyOverflowRef = useRef<string | null>(null)
+  const bodyOverflowWasChangedRef = useRef(false)
 
   useEffect(() => {
     const dialog = dialogRef.current
 
     if (isOpen) {
-      safelyOpenDialogAsModal(dialog)
+      safelyOpenDialogAsModal(dialog, previousBodyOverflowRef, bodyOverflowWasChangedRef)
     } else {
-      dialog?.close()
+      safelyCloseDialog(dialog, previousBodyOverflowRef, bodyOverflowWasChangedRef)
     }
 
     return () => {
-      dialog?.close()
+      safelyCloseDialog(dialog, previousBodyOverflowRef, bodyOverflowWasChangedRef)
     }
   }, [isOpen])
 
   useEffect(() => {
     const dialog = dialogRef.current
 
-    function handleClose(event: Event | KeyboardEvent) {
+    function close(event: Event | KeyboardEvent) {
       event.preventDefault()
       event.stopPropagation()
       setIsOpen(false)
@@ -91,14 +89,14 @@ export const ModalDialog = function ({
           rect.top > event.clientY || event.clientY > rect.bottom || rect.left > event.clientX || event.clientX > rect.right
 
         if (clickedOutsideDialog) {
-          handleClose(event)
+          close(event)
         }
       }
     }
 
     function closeOnEscape(event: KeyboardEvent) {
       if (event.code === "Escape") {
-        handleClose(event)
+        close(event)
       }
     }
 
@@ -115,26 +113,6 @@ export const ModalDialog = function ({
       dialog?.removeEventListener("keydown", closeOnEscape)
     }
   }, [shouldLightDismiss, setIsOpen])
-
-  useImperativeHandle(ref, () => {
-    return {
-      close() {
-        setIsOpen(false)
-      },
-      showModal() {
-        setIsOpen(true)
-      },
-      isOpen() {
-        return isOpen
-      },
-      addEventListener(name: string, callback: EventListenerOrEventListenerObject, options?: boolean | AddEventListenerOptions) {
-        dialogRef.current?.addEventListener(name, callback, options)
-      },
-      removeEventListener(name: string, callback: EventListenerOrEventListenerObject, options?: boolean | AddEventListenerOptions) {
-        dialogRef.current?.removeEventListener(name, callback, options)
-      }
-    }
-  }, [isOpen, setIsOpen])
 
   return (
     <dialog

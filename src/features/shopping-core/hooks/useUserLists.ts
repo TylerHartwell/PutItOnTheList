@@ -7,7 +7,6 @@ import { type User } from "firebase/auth"
 import { database } from "@/shared/lib/firebase"
 import { normalizeText } from "@/shared/utils/text"
 import type { ListMember, StoredList } from "@/shared/types/shopping"
-import { loadLegacyListMetadataForAuthMigration, removeMigratedLegacyLocalStorageLists } from "../utils/legacy-list-migration"
 
 const LISTS_ROOT = "lists"
 const MAX_CREATE_LIST_ATTEMPTS = 10
@@ -56,7 +55,6 @@ export function useUserLists(user: User | null, activeUsername: string) {
   const [currentListMembers, setCurrentListMembers] = useState<ListMember[]>([])
   const [currentListOwnerUid, setCurrentListOwnerUid] = useState("")
   const [currentListLastEditedBy, setCurrentListLastEditedBy] = useState("")
-  const [hasRunLegacyMigration, setHasRunLegacyMigration] = useState(false)
   const isBootstrappingDefaultListRef = useRef(false)
   const hasResolvedInitialCurrentListRef = useRef(false)
   const isCurrentUserOwner = Boolean(user?.uid && currentListOwnerUid && user.uid === currentListOwnerUid)
@@ -152,125 +150,6 @@ export function useUserLists(user: User | null, activeUsername: string) {
       isBootstrappingDefaultListRef.current = false
     }
   }, [createList])
-
-  useEffect(() => {
-    if (!database) {
-      void Promise.resolve().then(() => {
-        setStoredLists([])
-        setCurrentListId("")
-        setIsLoading(false)
-      })
-      return
-    }
-
-    if (!user) {
-      void Promise.resolve().then(() => {
-        setHasRunLegacyMigration(false)
-      })
-      return
-    }
-
-    if (!activeUsername || hasRunLegacyMigration) {
-      return
-    }
-
-    const db = database
-
-    let isCancelled = false
-
-    const migrateLegacyLocalStorageLists = async () => {
-      const { listIds, listNamesById, localStorageLists } = loadLegacyListMetadataForAuthMigration()
-      const legacyListIds = listIds.map(listId => listId.trim()).filter(Boolean)
-      const localStorageListIdSet = new Set(localStorageLists.map(list => list.listId))
-      const migratedLocalStorageListIds: string[] = []
-
-      if (legacyListIds.length === 0) {
-        if (!isCancelled) {
-          setHasRunLegacyMigration(true)
-        }
-        return
-      }
-
-      for (const listId of legacyListIds) {
-        if (isCancelled) {
-          return
-        }
-
-        try {
-          const listRef = ref(db, `${LISTS_ROOT}/${listId}`)
-          const listSnapshot = await get(listRef)
-          const localLegacyName = normalizeText(listNamesById[listId] ?? "")
-          if (!listSnapshot.exists()) {
-            // Create missing list metadata in a single write so it passes list create rules.
-            await update(ref(db), {
-              [`${LISTS_ROOT}/${listId}`]: {
-                owner: user.uid,
-                listName: localLegacyName,
-                lastEditedByUid: user.uid,
-                members: {
-                  [user.uid]: true
-                },
-                memberProfiles: {
-                  [user.uid]: {
-                    username: activeUsername
-                  }
-                }
-              },
-              [`users/${user.uid}/${LISTS_ROOT}/${listId}`]: true
-            })
-
-            if (localStorageListIdSet.has(listId)) {
-              migratedLocalStorageListIds.push(listId)
-            }
-            continue
-          }
-
-          const listValue = listSnapshot.val() as {
-            owner?: unknown
-            lastEditedByUid?: unknown
-            listName?: unknown
-          }
-          const migrationUpdates: Record<string, string | boolean> = {
-            [`${LISTS_ROOT}/${listId}/members/${user.uid}`]: true,
-            [`${LISTS_ROOT}/${listId}/memberProfiles/${user.uid}/username`]: activeUsername,
-            [`users/${user.uid}/${LISTS_ROOT}/${listId}`]: true
-          }
-
-          if (typeof listValue.owner !== "string" || !listValue.owner.trim()) {
-            migrationUpdates[`${LISTS_ROOT}/${listId}/owner`] = user.uid
-          }
-
-          if (typeof listValue.lastEditedByUid !== "string" || !listValue.lastEditedByUid.trim()) {
-            migrationUpdates[`${LISTS_ROOT}/${listId}/lastEditedByUid`] = user.uid
-          }
-
-          if (localLegacyName && (typeof listValue.listName !== "string" || !listValue.listName.trim())) {
-            migrationUpdates[`${LISTS_ROOT}/${listId}/listName`] = localLegacyName
-          }
-
-          await update(ref(db), migrationUpdates)
-
-          if (localStorageListIdSet.has(listId)) {
-            migratedLocalStorageListIds.push(listId)
-          }
-        } catch {
-          // Keep migration best-effort and non-blocking.
-        }
-      }
-
-      removeMigratedLegacyLocalStorageLists(migratedLocalStorageListIds)
-
-      if (!isCancelled) {
-        setHasRunLegacyMigration(true)
-      }
-    }
-
-    void migrateLegacyLocalStorageLists()
-
-    return () => {
-      isCancelled = true
-    }
-  }, [activeUsername, hasRunLegacyMigration, setCurrentListId, user])
 
   useEffect(() => {
     if (!database || !user || !activeUsername || storedLists.length === 0) {

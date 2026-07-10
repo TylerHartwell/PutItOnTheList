@@ -3,7 +3,7 @@ import ListJoinForm from "./ListJoinForm"
 import ListCreateForm from "./ListCreateForm"
 import ListEditForm from "./ListEditForm"
 import SettingsModalHeader from "./SettingsModalHeader"
-import { ModalDialog, ModalDialogRef } from "@/shared/components/ModalDialog"
+import { ModalDialog } from "@/shared/components/ModalDialog"
 import type { ListMember } from "@/shared/types/shopping"
 import { SettingsButton } from "./SettingsButton"
 
@@ -24,7 +24,7 @@ type SettingsModalProps = DialogHTMLAttributes<HTMLDialogElement> & {
   newListNameInput: string
   joinListIdInput: string
   joinListError: string
-  onCopyList: () => Promise<boolean>
+  copyList: () => Promise<boolean>
   onCurrentListNameChange: (value: string) => void
   onSaveCurrentListName: () => void
   onLeaveList: () => void
@@ -47,7 +47,7 @@ export function SettingsModal({
   newListNameInput,
   joinListIdInput,
   joinListError,
-  onCopyList,
+  copyList,
   onCurrentListNameChange,
   onSaveCurrentListName,
   onLeaveList,
@@ -67,7 +67,6 @@ export function SettingsModal({
   const [isScrolledBottom, setIsScrolledBottom] = useState(false)
   const [copyStatus, setCopyStatus] = useState<"idle" | "success">("idle")
   const copyFeedbackTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-  const settingsModalRef = useRef<ModalDialogRef | null>(null)
 
   useEffect(() => {
     return () => {
@@ -78,19 +77,11 @@ export function SettingsModal({
   }, [])
 
   function handleModalClose() {
-    unlockBodyScroll()
-  }
-
-  function unlockBodyScroll() {
-    document.body.style.overflow = "unset"
-  }
-
-  function closeSettingsModal() {
-    settingsModalRef.current?.close()
+    setIsOpen(false)
   }
 
   async function handleCopyList() {
-    const didCopy = await onCopyList()
+    const didCopy = await copyList()
     if (!didCopy) {
       return
     }
@@ -108,8 +99,6 @@ export function SettingsModal({
 
   return (
     <ModalDialog
-      ref={settingsModalRef}
-      onClose={handleModalClose}
       isOpen={isOpen}
       setIsOpen={setIsOpen}
       isScrolledBottom={isScrolledBottom}
@@ -119,7 +108,7 @@ export function SettingsModal({
       }}
     >
       <div className="relative flex flex-col gap-2">
-        <SettingsModalHeader isElevated={isHeaderElevated} closeSettingsModal={closeSettingsModal} />
+        <SettingsModalHeader isElevated={isHeaderElevated} onModalClose={handleModalClose} />
 
         <ListEditForm
           currentListId={currentListId}
@@ -128,7 +117,7 @@ export function SettingsModal({
           onCurrentListNameChange={onCurrentListNameChange}
           onSaveCurrentListName={onSaveCurrentListName}
           onLeaveList={onLeaveList}
-          handleCopyList={handleCopyList}
+          onCopyList={handleCopyList}
         />
 
         <ListCreateForm onCreateList={onCreateList} newListNameInput={newListNameInput} onNewListNameChange={onNewListNameChange} />
