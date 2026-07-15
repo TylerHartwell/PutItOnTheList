@@ -42,7 +42,7 @@ export function ListSelectorBar({ storedLists, currentListId, currentListLastEdi
           <Settings aria-hidden="true" size={18} strokeWidth={2.25} />
         </button>
       </div>
-      <p className="mt-1 text-xs text-[#f0e8d8]">List last edited by: {currentListLastEditedBy || "Unknown"}</p>
+      <p className="mt-1 text-xs ">List last edited by: {currentListLastEditedBy || "Unknown"}</p>
     </div>
   )
 }

@@ -39,9 +39,9 @@ function ShoppingListContent() {
         onCurrentListNameChange={settings.changeCurrentListNameInput}
         onSaveCurrentListName={settings.editListName}
         onLeaveList={settings.leaveList}
-        onNewListNameChange={settings.setNewListNameInput}
+        onNewListNameChange={settings.changeNewListNameInput}
         onCreateList={settings.createList}
-        onJoinListIdChange={settings.setJoinListIdInput}
+        onJoinListIdChange={settings.changeJoinListIdInput}
         onJoinList={settings.joinList}
         currentListMembers={settings.currentListMembers}
         currentListOwnerUid={settings.currentListOwnerUid}
@@ -49,7 +49,7 @@ function ShoppingListContent() {
         onRemoveMember={settings.removeMember}
         onTransferOwnership={settings.transferOwnership}
         isOpen={settings.isOpen}
-        setIsOpen={settings.setIsOpen}
+        onCloseSettingsModal={settings.closeSettingsModal}
       />
 
       <Image
@@ -61,7 +61,7 @@ function ShoppingListContent() {
         priority
       />
 
-      <ItemComposer itemEntry={itemsState.itemEntry} onItemEntryChange={itemsState.setItemEntry} onAddItem={itemsState.addInputToList} />
+      <ItemComposer itemEntry={itemsState.itemEntry} onItemEntryChange={itemsState.changeItemEntry} onAddItem={itemsState.addItem} />
 
       <ItemsList
         items={itemsState.items}

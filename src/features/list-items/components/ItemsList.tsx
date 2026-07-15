@@ -1,6 +1,7 @@
 import type { RefObject } from "react"
 import type { ShoppingItem } from "@/shared/types/shopping"
 import { Check, X } from "lucide-react"
+import { vibrate } from "@/shared/utils/vibrate"
 
 type ItemsListProps = {
   items: ShoppingItem[]
@@ -25,6 +26,26 @@ export function ItemsList({
   onSaveEditedItem,
   onToggleHighlight
 }: ItemsListProps) {
+  function handleToggleHighlight(item: ShoppingItem) {
+    onToggleHighlight(item)
+    vibrate()
+  }
+
+  function handleEditItem(item: ShoppingItem) {
+    onStartEditItem(item)
+    vibrate()
+  }
+
+  function handleSaveEditedItem() {
+    onSaveEditedItem()
+    vibrate()
+  }
+
+  function handleDeleteItem(itemId: string) {
+    onDeleteItem(itemId)
+    vibrate()
+  }
+
   if (items.length === 0) {
     return <p className="my-2.5 text-xl">No items here...yet</p>
   }
@@ -41,7 +62,7 @@ export function ItemsList({
           <button
             type="button"
             className="bg-transparent p-2 text-center font-black leading-none text-[#fc7371] active:scale-130 cursor-pointer"
-            onClick={() => onDeleteItem(item.id)}
+            onClick={() => handleDeleteItem(item.id)}
             aria-label={`Delete ${item.itemName}`}
           >
             <X className="h-6 w-6 text-red-600 hover:scale-120" strokeWidth={3} />
@@ -53,11 +74,11 @@ export function ItemsList({
               className="min-w-0 flex-1 bg-transparent px-1.5 py-2 text-xl outline-none cursor-text"
               value={editingItemText}
               onChange={event => onEditingItemTextChange(event.target.value)}
-              onBlur={onSaveEditedItem}
+              onBlur={handleSaveEditedItem}
               onKeyDown={event => {
                 if (event.key === "Enter") {
                   event.preventDefault()
-                  onSaveEditedItem()
+                  handleSaveEditedItem()
                 }
               }}
             />
@@ -65,7 +86,7 @@ export function ItemsList({
             <button
               type="button"
               className={`min-w-0 flex-1 bg-transparent px-1.5 py-2 text-left text-xl cursor-auto wrap-break-word ${item.itemHighlighted ? "opacity-50" : ""}`}
-              onClick={() => onStartEditItem(item)}
+              onClick={() => handleEditItem(item)}
               aria-label={`Edit ${item.itemName}`}
             >
               <span className="block">{item.itemName}</span>
@@ -76,7 +97,7 @@ export function ItemsList({
           <button
             type="button"
             className="bg-transparent p-2 text-center font-black leading-none active:scale-130 cursor-pointer"
-            onClick={() => onToggleHighlight(item)}
+            onClick={() => handleToggleHighlight(item)}
             aria-label={`Toggle marked state for ${item.itemName}`}
           >
             <Check className="h-6 w-6 text-green-600 hover:scale-120" strokeWidth={5} />

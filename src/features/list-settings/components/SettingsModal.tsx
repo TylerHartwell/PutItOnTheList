@@ -38,7 +38,7 @@ type SettingsModalProps = DialogHTMLAttributes<HTMLDialogElement> & {
   onRemoveMember: (memberUid: string) => Promise<void>
   onTransferOwnership: (nextOwnerUid: string) => Promise<void>
   isOpen: boolean
-  setIsOpen: (value: boolean) => void
+  onCloseSettingsModal: () => void
 }
 
 export function SettingsModal({
@@ -61,7 +61,7 @@ export function SettingsModal({
   onRemoveMember,
   onTransferOwnership,
   isOpen,
-  setIsOpen
+  onCloseSettingsModal
 }: SettingsModalProps) {
   const [isHeaderElevated, setIsHeaderElevated] = useState(false)
   const [isScrolledBottom, setIsScrolledBottom] = useState(false)
@@ -75,10 +75,6 @@ export function SettingsModal({
       }
     }
   }, [])
-
-  function handleModalClose() {
-    setIsOpen(false)
-  }
 
   async function handleCopyList() {
     const didCopy = await copyList()
@@ -100,7 +96,7 @@ export function SettingsModal({
   return (
     <ModalDialog
       isOpen={isOpen}
-      setIsOpen={setIsOpen}
+      onCloseSettingsModal={onCloseSettingsModal}
       isScrolledBottom={isScrolledBottom}
       onScroll={event => {
         setIsHeaderElevated(event.currentTarget.scrollTop > 0)
@@ -108,7 +104,7 @@ export function SettingsModal({
       }}
     >
       <div className="relative flex flex-col gap-2">
-        <SettingsModalHeader isElevated={isHeaderElevated} onModalClose={handleModalClose} />
+        <SettingsModalHeader isElevated={isHeaderElevated} onCloseSettingsModal={onCloseSettingsModal} />
 
         <ListEditForm
           currentListId={currentListId}

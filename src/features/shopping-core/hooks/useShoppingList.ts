@@ -5,7 +5,7 @@ import { useSettingsConcern } from "./useSettingsConcern"
 
 export function useShoppingList(user: User | null, activeUsername: string) {
   const userLists = useUserLists(user, activeUsername)
-  const items = useItemsConcern(user, userLists.currentListId, user?.uid || "")
+  const items = useItemsConcern(user, userLists.currentListId)
   const settings = useSettingsConcern({
     userLists
   })

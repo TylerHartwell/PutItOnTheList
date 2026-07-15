@@ -5,7 +5,7 @@ import { get, onValue, ref, runTransaction, update } from "firebase/database"
 import { FirebaseError } from "firebase/app"
 import { type User } from "firebase/auth"
 import { database } from "@/shared/lib/firebase"
-import { normalizeText } from "@/shared/utils/text"
+import { trimAndCollapseSpaces } from "@/shared/utils/text"
 import type { ListMember, StoredList } from "@/shared/types/shopping"
 
 const LISTS_ROOT = "lists"
@@ -82,7 +82,7 @@ export function useUserLists(user: User | null, activeUsername: string) {
       }
 
       const db = database
-      const trimmedName = normalizeText(listName)
+      const trimmedName = trimAndCollapseSpaces(listName)
 
       const listRecord = {
         owner: user.uid,
@@ -493,7 +493,7 @@ export function useUserLists(user: User | null, activeUsername: string) {
 
     const db = database
 
-    const trimmedName = normalizeText(newName)
+    const trimmedName = trimAndCollapseSpaces(newName)
     await update(ref(db), {
       [`${LISTS_ROOT}/${listId}/listName`]: trimmedName,
       [`${LISTS_ROOT}/${listId}/lastEditedByUid`]: user.uid

@@ -1,3 +1,5 @@
+import { vibrate } from "@/shared/utils/vibrate"
+
 type ItemComposerProps = {
   itemEntry: string
   onItemEntryChange: (value: string) => void
@@ -7,6 +9,7 @@ type ItemComposerProps = {
 export function ItemComposer({ itemEntry, onItemEntryChange, onAddItem }: ItemComposerProps) {
   const handleSubmit = (event: React.SubmitEvent<HTMLFormElement>) => {
     event.preventDefault()
+    vibrate()
     onAddItem()
   }
 

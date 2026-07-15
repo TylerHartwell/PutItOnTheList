@@ -1,6 +1,6 @@
 import { useState } from "react"
 import { vibrate } from "@/shared/utils/vibrate"
-import { normalizeText } from "@/shared/utils/text"
+import { trimAndCollapseSpaces } from "@/shared/utils/text"
 import type { useUserLists } from "./useUserLists"
 
 export type SettingsConcernParams = {
@@ -8,24 +8,41 @@ export type SettingsConcernParams = {
 }
 
 export function useSettingsConcern({ userLists }: SettingsConcernParams) {
-  const [currentListNameInput, setCurrentListNameInput] = useState("")
-  const [newListNameInput, setNewListNameInput] = useState("")
-  const [joinListIdInput, setJoinListIdInputState] = useState("")
-  const [joinListError, setJoinListError] = useState("")
   const [isOpen, setIsOpen] = useState(false)
+  const [newListNameInput, setNewListNameInput] = useState("")
+  const [joinListIdInput, setJoinListIdInput] = useState("")
+  const [joinListError, setJoinListError] = useState("")
+  const currentListName = userLists.storedLists.find(list => list.listId === userLists.currentListId)?.listName ?? ""
+
+  const [currentListNameInput, setCurrentListNameInput] = useState(currentListName)
+
+  function reset() {
+    setCurrentListNameInput(currentListName)
+    setNewListNameInput("")
+    setJoinListIdInput("")
+    setJoinListError("")
+  }
+
+  function openSettingsModal() {
+    setIsOpen(true)
+    reset()
+  }
+
+  function closeSettingsModal() {
+    reset()
+    setIsOpen(false)
+  }
 
   function changeCurrentListNameInput(value: string) {
     setCurrentListNameInput(value)
   }
 
-  function openSettingsModal() {
-    changeCurrentListNameInput(userLists.storedLists.find(list => list.listId === userLists.currentListId)?.listName ?? "")
-    setJoinListError("")
-    setIsOpen(true)
+  function changeNewListNameInput(value: string) {
+    setNewListNameInput(value)
   }
 
-  function setJoinListIdInput(value: string) {
-    setJoinListIdInputState(value)
+  function changeJoinListIdInput(value: string) {
+    setJoinListIdInput(value)
     if (joinListError) {
       setJoinListError("")
     }
@@ -41,7 +58,7 @@ export function useSettingsConcern({ userLists }: SettingsConcernParams) {
     }
 
     void userLists.leaveList(userLists.currentListId)
-    setIsOpen(false)
+    closeSettingsModal()
     vibrate()
   }
 
@@ -54,9 +71,7 @@ export function useSettingsConcern({ userLists }: SettingsConcernParams) {
 
     try {
       await userLists.joinList(listIdToJoin)
-      setJoinListIdInputState("")
-      setJoinListError("")
-      setIsOpen(false)
+      closeSettingsModal()
       vibrate()
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : "Could not join that list right now."
@@ -65,10 +80,10 @@ export function useSettingsConcern({ userLists }: SettingsConcernParams) {
   }
 
   async function createList() {
-    const trimmedName = normalizeText(newListNameInput)
+    const trimmedName = trimAndCollapseSpaces(newListNameInput)
     await userLists.createList(trimmedName)
-    setNewListNameInput("")
-    setIsOpen(false)
+
+    closeSettingsModal()
     vibrate()
   }
 
@@ -92,9 +107,9 @@ export function useSettingsConcern({ userLists }: SettingsConcernParams) {
       return
     }
 
-    const trimmedName = normalizeText(currentListNameInput)
+    const trimmedName = trimAndCollapseSpaces(currentListNameInput)
     await userLists.renameList(userLists.currentListId, trimmedName)
-    setIsOpen(false)
+    closeSettingsModal()
     vibrate()
   }
 
@@ -109,14 +124,16 @@ export function useSettingsConcern({ userLists }: SettingsConcernParams) {
   }
 
   return {
+    isOpen,
+    openSettingsModal,
+    closeSettingsModal,
     currentListNameInput,
     changeCurrentListNameInput,
     newListNameInput,
-    setNewListNameInput,
+    changeNewListNameInput,
     joinListIdInput,
-    setJoinListIdInput,
+    changeJoinListIdInput,
     joinListError,
-    openSettingsModal,
     leaveList,
     joinList,
     createList,
@@ -126,8 +143,6 @@ export function useSettingsConcern({ userLists }: SettingsConcernParams) {
     currentListOwnerUid: userLists.currentListOwnerUid,
     isCurrentUserOwner: userLists.isCurrentUserOwner,
     removeMember,
-    transferOwnership,
-    isOpen,
-    setIsOpen
+    transferOwnership
   }
 }

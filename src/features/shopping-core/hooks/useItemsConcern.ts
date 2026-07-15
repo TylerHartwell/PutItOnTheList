@@ -1,146 +1,72 @@
 import { useEffect, useRef, useState } from "react"
-import { onValue, push, ref, remove, set, update } from "firebase/database"
+import { DataSnapshot, onValue, push, ref, remove, set, update } from "firebase/database"
 import { type User } from "firebase/auth"
 import { database } from "@/shared/lib/firebase"
 import type { ShoppingItem } from "@/shared/types/shopping"
-import { vibrate } from "@/shared/utils/vibrate"
-import { normalizeText } from "@/shared/utils/text"
+import { trimAndCollapseSpaces } from "@/shared/utils/text"
 
-type ItemSource = "current" | "legacy"
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value)
+}
 
-function readItemsFromSnapshot(rawValue: unknown): ShoppingItem[] {
-  if (typeof rawValue !== "object" || rawValue === null || Array.isArray(rawValue)) {
-    return []
+function toShoppingItem(id: string, value: unknown): ShoppingItem | null {
+  if (!isRecord(value)) return null
+
+  const itemName = value.itemName
+  if (typeof itemName !== "string") return null
+
+  return {
+    id,
+    itemName,
+    itemHighlighted: typeof value.itemHighlighted === "boolean" ? value.itemHighlighted : false,
+    lastEditedByUid: typeof value.lastEditedByUid === "string" ? value.lastEditedByUid : ""
   }
+}
 
-  const rawData = rawValue as Record<string, unknown>
+function readItemsFromSnapshot(snapshot: DataSnapshot): ShoppingItem[] {
+  const rawData = snapshot.val()
+
+  if (!isRecord(rawData)) return []
+
   const nextItems: ShoppingItem[] = []
 
   for (const [id, value] of Object.entries(rawData)) {
-    if (typeof value !== "object" || value === null || Array.isArray(value)) {
-      continue
-    }
+    const parsed = toShoppingItem(id, value)
 
-    const itemValue = value as { itemName?: unknown; itemHighlighted?: unknown; lastEditedByUid?: unknown }
-    if (typeof itemValue.itemName !== "string") {
-      continue
+    if (parsed) {
+      nextItems.push(parsed)
     }
-
-    nextItems.push({
-      id,
-      itemName: itemValue.itemName,
-      itemHighlighted: typeof itemValue.itemHighlighted === "boolean" ? itemValue.itemHighlighted : false,
-      lastEditedByUid: typeof itemValue.lastEditedByUid === "string" ? itemValue.lastEditedByUid : ""
-    })
   }
 
   return nextItems
 }
 
-export function useItemsConcern(user: User | null, currentListId: string, editorUid: string) {
+export function useItemsConcern(user: User | null, currentListId: string) {
   const [items, setItems] = useState<ShoppingItem[]>([])
-  const [itemSource, setItemSource] = useState<ItemSource>("current")
   const [itemEntry, setItemEntry] = useState("")
   const [editingItemId, setEditingItemId] = useState<string | null>(null)
   const [editingItemText, setEditingItemText] = useState("")
   const editInputRef = useRef<HTMLInputElement | null>(null)
 
+  const editorUid = user?.uid || ""
+  const itemsPath = `lists/${currentListId}/items`
+
   useEffect(() => {
-    if (!database || !user || !currentListId) {
+    if (!database || !editorUid || !currentListId) {
       return
     }
 
-    const db = database
-
-    const itemsRef = ref(db, `lists/${currentListId}/items`)
-    const legacyItemsRef = ref(db, currentListId)
-
-    let nextCurrentItems: ShoppingItem[] = []
-    let nextLegacyItems: ShoppingItem[] = []
-    let hasLoadedCurrentItems = false
-    let hasLoadedLegacyItems = false
-    let hasAttemptedLegacyMigration = false
-    let isMigratingLegacyItems = false
-
-    const updateItems = () => {
-      if (nextCurrentItems.length > 0) {
-        setItemSource("current")
-        setItems(nextCurrentItems)
-        return
-      }
-
-      if (nextLegacyItems.length > 0) {
-        setItemSource("legacy")
-        setItems(nextLegacyItems)
-        return
-      }
-
-      setItems([])
-    }
-
-    const migrateLegacyItemsIfNeeded = async () => {
-      if (hasAttemptedLegacyMigration || isMigratingLegacyItems) {
-        return
-      }
-
-      if (!hasLoadedCurrentItems || !hasLoadedLegacyItems) {
-        return
-      }
-
-      if (nextCurrentItems.length > 0 || nextLegacyItems.length === 0) {
-        return
-      }
-
-      hasAttemptedLegacyMigration = true
-      isMigratingLegacyItems = true
-
-      const migrationUpdates: Record<string, unknown> = {
-        [`lists/${currentListId}/lastEditedByUid`]: editorUid
-      }
-
-      for (const legacyItem of nextLegacyItems) {
-        migrationUpdates[`lists/${currentListId}/items/${legacyItem.id}`] = {
-          itemName: legacyItem.itemName,
-          itemHighlighted: legacyItem.itemHighlighted,
-          lastEditedByUid: legacyItem.lastEditedByUid || editorUid
-        }
-      }
-
-      try {
-        await update(ref(db), migrationUpdates)
-
-        // Legacy cleanup happens in a follow-up call so copy succeeds even if delete permissions fail.
-        await remove(ref(db, currentListId)).catch(() => {})
-
-        nextCurrentItems = nextLegacyItems
-        nextLegacyItems = []
-      } catch {
-        // Keep legacy data intact if migration cannot be completed.
-      } finally {
-        isMigratingLegacyItems = false
-        updateItems()
-      }
-    }
+    const itemsRef = ref(database, itemsPath)
 
     const unsubscribeCurrent = onValue(itemsRef, snapshot => {
-      hasLoadedCurrentItems = true
-      nextCurrentItems = snapshot.exists() ? readItemsFromSnapshot(snapshot.val()) : []
-      updateItems()
-      void migrateLegacyItemsIfNeeded()
-    })
-
-    const unsubscribeLegacy = onValue(legacyItemsRef, snapshot => {
-      hasLoadedLegacyItems = true
-      nextLegacyItems = snapshot.exists() ? readItemsFromSnapshot(snapshot.val()) : []
-      updateItems()
-      void migrateLegacyItemsIfNeeded()
+      const nextItems = readItemsFromSnapshot(snapshot)
+      setItems(nextItems)
     })
 
     return () => {
       unsubscribeCurrent()
-      unsubscribeLegacy()
     }
-  }, [currentListId, editorUid, user])
+  }, [currentListId, editorUid, itemsPath])
 
   useEffect(() => {
     if (editingItemId && editInputRef.current) {
@@ -148,63 +74,53 @@ export function useItemsConcern(user: User | null, currentListId: string, editor
     }
   }, [editingItemId])
 
-  function addInputToList() {
-    const inputValue = normalizeText(itemEntry)
-    if (!database || !inputValue || !user || !currentListId) {
-      setItemEntry("")
+  function changeItemEntry(value: string) {
+    setItemEntry(value)
+  }
+
+  function addItem() {
+    const itemName = trimAndCollapseSpaces(itemEntry)
+
+    if (!database || !itemName || !editorUid || !currentListId) {
+      changeItemEntry("")
       return
     }
 
-    const db = database
-    const itemsPath = itemSource === "legacy" ? currentListId : `lists/${currentListId}/items`
-
-    push(ref(db, itemsPath), {
-      itemName: inputValue,
+    push(ref(database, itemsPath), {
+      itemName: itemName,
       itemHighlighted: false,
       lastEditedByUid: editorUid
     })
-    set(ref(db, `lists/${currentListId}/lastEditedByUid`), editorUid)
-    vibrate()
-
-    setItemEntry("")
+    set(ref(database, `lists/${currentListId}/lastEditedByUid`), editorUid)
+    changeItemEntry("")
   }
 
   function toggleHighlight(item: ShoppingItem) {
-    if (!database || !user) {
+    if (!database || !editorUid || !currentListId) {
       return
     }
 
-    const db = database
-    const itemsPath = itemSource === "legacy" ? currentListId : `lists/${currentListId}/items`
-
-    void update(ref(db, `${itemsPath}/${item.id}`), {
+    void update(ref(database, `${itemsPath}/${item.id}`), {
       itemHighlighted: !item.itemHighlighted,
       lastEditedByUid: editorUid
     })
-    set(ref(db, `lists/${currentListId}/lastEditedByUid`), editorUid)
-    vibrate()
+    set(ref(database, `lists/${currentListId}/lastEditedByUid`), editorUid)
   }
 
   function deleteItem(itemId: string) {
-    if (!database || !user) {
+    if (!database || !editorUid || !currentListId) {
       return
     }
 
-    const db = database
-    const itemsPath = itemSource === "legacy" ? currentListId : `lists/${currentListId}/items`
-
-    remove(ref(db, `${itemsPath}/${itemId}`))
-    set(ref(db, `lists/${currentListId}/lastEditedByUid`), editorUid)
-    vibrate()
+    remove(ref(database, `${itemsPath}/${itemId}`))
+    set(ref(database, `lists/${currentListId}/lastEditedByUid`), editorUid)
   }
 
   function markAllItems(nextValue: boolean) {
-    if (!database || !user) {
+    if (!database || !editorUid || !currentListId) {
       return
     }
 
-    const db = database
-    const itemsPath = itemSource === "legacy" ? currentListId : `lists/${currentListId}/items`
     const batchUpdates: Record<string, unknown> = {
       [`lists/${currentListId}/lastEditedByUid`]: editorUid
     }
@@ -216,17 +132,13 @@ export function useItemsConcern(user: User | null, currentListId: string, editor
       }
     }
 
-    void update(ref(db), batchUpdates)
-    vibrate()
+    void update(ref(database), batchUpdates)
   }
 
   function deleteMarkedItems() {
-    if (!database || !user) {
+    if (!database || !editorUid || !currentListId) {
       return
     }
-
-    const db = database
-    const itemsPath = itemSource === "legacy" ? currentListId : `lists/${currentListId}/items`
 
     if (!window.confirm("Delete marked items from current list?")) {
       return
@@ -242,58 +154,49 @@ export function useItemsConcern(user: User | null, currentListId: string, editor
       }
     }
 
-    void update(ref(db), batchUpdates)
-    vibrate()
+    void update(ref(database), batchUpdates)
   }
 
   function deleteAllItems() {
-    if (!database || !user || !currentListId) {
+    if (!database || !editorUid || !currentListId) {
       return
     }
-
-    const db = database
-    const itemsPath = itemSource === "legacy" ? currentListId : `lists/${currentListId}/items`
 
     if (!window.confirm("Delete all items from current list?")) {
       return
     }
 
-    void update(ref(db), {
+    void update(ref(database), {
       [itemsPath]: null,
       [`lists/${currentListId}/lastEditedByUid`]: editorUid
     })
-    vibrate()
   }
 
   function startEditItem(item: ShoppingItem) {
     setEditingItemId(item.id)
     setEditingItemText(item.itemName)
-    vibrate()
   }
 
   function saveEditedItem() {
-    if (!database || !editingItemId || !user || !currentListId) {
+    if (!database || !editingItemId || !editorUid || !currentListId) {
       setEditingItemId(null)
       setEditingItemText("")
       return
     }
 
-    const db = database
-    const itemsPath = itemSource === "legacy" ? currentListId : `lists/${currentListId}/items`
+    const trimmedName = trimAndCollapseSpaces(editingItemText)
 
-    const trimmedName = normalizeText(editingItemText)
-
-    if (trimmedName === "") {
-      remove(ref(db, `${itemsPath}/${editingItemId}`))
+    if (!trimmedName) {
+      remove(ref(database, `${itemsPath}/${editingItemId}`))
     } else {
-      void update(ref(db, `${itemsPath}/${editingItemId}`), {
+      void update(ref(database, `${itemsPath}/${editingItemId}`), {
         itemName: trimmedName,
         lastEditedByUid: editorUid
       })
     }
 
-    set(ref(db, `lists/${currentListId}/lastEditedByUid`), editorUid)
-    vibrate()
+    set(ref(database, `lists/${currentListId}/lastEditedByUid`), editorUid)
+
     setEditingItemId(null)
     setEditingItemText("")
   }
@@ -301,12 +204,12 @@ export function useItemsConcern(user: User | null, currentListId: string, editor
   return {
     items,
     itemEntry,
-    setItemEntry,
+    changeItemEntry,
     editingItemId,
     editingItemText,
     setEditingItemText,
     editInputRef,
-    addInputToList,
+    addItem,
     toggleHighlight,
     deleteItem,
     markAllItems,

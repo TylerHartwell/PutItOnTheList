@@ -1,4 +1,4 @@
-export function normalizeText(value: string): string {
+export function trimAndCollapseSpaces(value: string): string {
   return value.trim().replace(/\s+/g, " ")
 }
 

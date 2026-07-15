@@ -3,7 +3,7 @@ import { cn } from "../lib/cn"
 
 type ModalDialogIsOpenProps = {
   isOpen: boolean
-  setIsOpen: (value: boolean) => void
+  onCloseSettingsModal: () => void
 }
 
 export type ModalDialogProps = PropsWithChildren &
@@ -47,7 +47,7 @@ function safelyCloseDialog(
 export const ModalDialog = function ({
   shouldLightDismiss = true,
   isOpen,
-  setIsOpen,
+  onCloseSettingsModal,
   children,
   className,
   isScrolledBottom,
@@ -77,7 +77,7 @@ export const ModalDialog = function ({
     function close(event: Event | KeyboardEvent) {
       event.preventDefault()
       event.stopPropagation()
-      setIsOpen(false)
+      onCloseSettingsModal()
     }
 
     function lightDismiss(event: MouseEvent) {
@@ -112,7 +112,7 @@ export const ModalDialog = function ({
       }
       dialog?.removeEventListener("keydown", closeOnEscape)
     }
-  }, [shouldLightDismiss, setIsOpen])
+  }, [shouldLightDismiss, onCloseSettingsModal])
 
   return (
     <dialog
