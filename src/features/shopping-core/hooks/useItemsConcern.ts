@@ -1,9 +1,17 @@
 import { useEffect, useRef, useState } from "react"
-import { DataSnapshot, onValue, push, ref, remove, set, update } from "firebase/database"
+import { DataSnapshot, onValue, ref } from "firebase/database"
 import { type User } from "firebase/auth"
-import { database } from "@/shared/lib/firebase"
+import {
+  database,
+  dbAddItem,
+  dbDeleteAllItems,
+  dbDeleteItem,
+  dbDeleteMarkedItems,
+  dbMarkAllItems,
+  dbSaveEditedItem,
+  dbToggleHighlight
+} from "@/shared/lib/firebase"
 import type { ShoppingItem } from "@/shared/types/shopping"
-import { trimAndCollapseSpaces } from "@/shared/utils/text"
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value)
@@ -44,7 +52,7 @@ function readItemsFromSnapshot(snapshot: DataSnapshot): ShoppingItem[] {
 export function useItemsConcern(user: User | null, currentListId: string) {
   const [items, setItems] = useState<ShoppingItem[]>([])
   const [itemEntry, setItemEntry] = useState("")
-  const [editingItemId, setEditingItemId] = useState<string | null>(null)
+  const [editingItemId, setEditingItemId] = useState<string>("")
   const [editingItemText, setEditingItemText] = useState("")
   const editInputRef = useRef<HTMLInputElement | null>(null)
 
@@ -78,98 +86,41 @@ export function useItemsConcern(user: User | null, currentListId: string) {
     setItemEntry(value)
   }
 
-  function addItem() {
-    const itemName = trimAndCollapseSpaces(itemEntry)
-
-    if (!database || !itemName || !editorUid || !currentListId) {
-      changeItemEntry("")
-      return
-    }
-
-    push(ref(database, itemsPath), {
-      itemName: itemName,
-      itemHighlighted: false,
-      lastEditedByUid: editorUid
-    })
-    set(ref(database, `lists/${currentListId}/lastEditedByUid`), editorUid)
+  async function addItem() {
+    await dbAddItem(itemEntry, editorUid, currentListId)
     changeItemEntry("")
   }
 
-  function toggleHighlight(item: ShoppingItem) {
-    if (!database || !editorUid || !currentListId) {
-      return
-    }
-
-    void update(ref(database, `${itemsPath}/${item.id}`), {
-      itemHighlighted: !item.itemHighlighted,
-      lastEditedByUid: editorUid
-    })
-    set(ref(database, `lists/${currentListId}/lastEditedByUid`), editorUid)
+  async function toggleHighlight(item: ShoppingItem) {
+    await dbToggleHighlight(item.id, !item.itemHighlighted, editorUid, currentListId)
   }
 
-  function deleteItem(itemId: string) {
-    if (!database || !editorUid || !currentListId) {
-      return
-    }
-
-    remove(ref(database, `${itemsPath}/${itemId}`))
-    set(ref(database, `lists/${currentListId}/lastEditedByUid`), editorUid)
+  async function deleteItem(itemId: string) {
+    await dbDeleteItem(currentListId, itemId, editorUid)
   }
 
-  function markAllItems(nextValue: boolean) {
-    if (!database || !editorUid || !currentListId) {
-      return
-    }
+  async function markAllItems(nextValue: boolean) {
+    const itemIdsToChangeMark = items.filter(item => item.itemHighlighted !== nextValue).map(item => item.id)
 
-    const batchUpdates: Record<string, unknown> = {
-      [`lists/${currentListId}/lastEditedByUid`]: editorUid
-    }
-
-    for (const item of items) {
-      if (item.itemHighlighted !== nextValue) {
-        batchUpdates[`${itemsPath}/${item.id}/itemHighlighted`] = nextValue
-        batchUpdates[`${itemsPath}/${item.id}/lastEditedByUid`] = editorUid
-      }
-    }
-
-    void update(ref(database), batchUpdates)
+    await dbMarkAllItems(nextValue, editorUid, currentListId, itemIdsToChangeMark)
   }
 
-  function deleteMarkedItems() {
-    if (!database || !editorUid || !currentListId) {
-      return
-    }
-
+  async function deleteMarkedItems() {
     if (!window.confirm("Delete marked items from current list?")) {
       return
     }
 
-    const batchUpdates: Record<string, unknown> = {
-      [`lists/${currentListId}/lastEditedByUid`]: editorUid
-    }
+    const markedItemIds = items.filter(item => item.itemHighlighted).map(item => item.id)
 
-    for (const item of items) {
-      if (item.itemHighlighted) {
-        batchUpdates[`${itemsPath}/${item.id}`] = null
-      }
-    }
-
-    void update(ref(database), batchUpdates)
+    await dbDeleteMarkedItems(currentListId, editorUid, markedItemIds)
   }
 
-  function deleteAllItems() {
-    if (!database || !editorUid || !currentListId) {
-      return
-    }
-
+  async function deleteAllItems() {
     if (!window.confirm("Delete all items from current list?")) {
       return
     }
 
-    void update(ref(database), {
-      [itemsPath]: null,
-      [`lists/${currentListId}/lastEditedByUid`]: editorUid
-    })
+    await dbDeleteAllItems(currentListId, editorUid)
   }
 
   function startEditItem(item: ShoppingItem) {
@@ -177,27 +128,10 @@ export function useItemsConcern(user: User | null, currentListId: string) {
     setEditingItemText(item.itemName)
   }
 
-  function saveEditedItem() {
-    if (!database || !editingItemId || !editorUid || !currentListId) {
-      setEditingItemId(null)
-      setEditingItemText("")
-      return
-    }
+  async function saveEditedItem() {
+    await dbSaveEditedItem(currentListId, editingItemId, editingItemText, editorUid)
 
-    const trimmedName = trimAndCollapseSpaces(editingItemText)
-
-    if (!trimmedName) {
-      remove(ref(database, `${itemsPath}/${editingItemId}`))
-    } else {
-      void update(ref(database, `${itemsPath}/${editingItemId}`), {
-        itemName: trimmedName,
-        lastEditedByUid: editorUid
-      })
-    }
-
-    set(ref(database, `lists/${currentListId}/lastEditedByUid`), editorUid)
-
-    setEditingItemId(null)
+    setEditingItemId("")
     setEditingItemText("")
   }
 

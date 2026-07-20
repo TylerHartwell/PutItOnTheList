@@ -8,7 +8,6 @@ import { database } from "@/shared/lib/firebase"
 import { trimAndCollapseSpaces } from "@/shared/utils/text"
 import type { ListMember, StoredList } from "@/shared/types/shopping"
 
-const LISTS_ROOT = "lists"
 const MAX_CREATE_LIST_ATTEMPTS = 10
 
 function normalizeUsernameCandidate(value: unknown) {
@@ -50,18 +49,15 @@ function generateListId(): string {
 
 export function useUserLists(user: User | null, activeUsername: string) {
   const [storedLists, setStoredLists] = useState<StoredList[]>([])
-  const [currentListId, setCurrentListIdState] = useState("")
+  const [currentListId, setCurrentListId] = useState("")
+
   const [isLoading, setIsLoading] = useState(!!user)
   const [currentListMembers, setCurrentListMembers] = useState<ListMember[]>([])
   const [currentListOwnerUid, setCurrentListOwnerUid] = useState("")
-  const [currentListLastEditedBy, setCurrentListLastEditedBy] = useState("")
   const isBootstrappingDefaultListRef = useRef(false)
   const hasResolvedInitialCurrentListRef = useRef(false)
-  const isCurrentUserOwner = Boolean(user?.uid && currentListOwnerUid && user.uid === currentListOwnerUid)
-
-  const setCurrentListId = useCallback((nextListId: string | ((previousListId: string) => string)) => {
-    setCurrentListIdState(nextListId)
-  }, [])
+  const isCurrentUserOwner = Boolean(user?.uid === currentListOwnerUid)
+  const currentListLastEditedByUsername = currentListMembers.find(member => member.uid === currentListOwnerUid)?.username || "Unknown"
 
   useEffect(() => {
     if (!database || !user || !hasResolvedInitialCurrentListRef.current) {
@@ -102,7 +98,7 @@ export function useUserLists(user: User | null, activeUsername: string) {
 
       for (let attempt = 0; attempt < MAX_CREATE_LIST_ATTEMPTS; attempt += 1) {
         const candidateListId = generateListId()
-        const reservationResult = await runTransaction(ref(db, `${LISTS_ROOT}/${candidateListId}`), currentValue => {
+        const reservationResult = await runTransaction(ref(db, `lists/${candidateListId}`), currentValue => {
           if (currentValue !== null) {
             return
           }
@@ -122,11 +118,11 @@ export function useUserLists(user: User | null, activeUsername: string) {
 
       try {
         await update(ref(db), {
-          [`users/${user.uid}/${LISTS_ROOT}/${newListId}`]: true
+          [`users/${user.uid}/lists/${newListId}`]: true
         })
       } catch (error) {
         await update(ref(db), {
-          [`${LISTS_ROOT}/${newListId}`]: null
+          [`lists/${newListId}`]: null
         })
 
         throw error
@@ -134,7 +130,7 @@ export function useUserLists(user: User | null, activeUsername: string) {
 
       setCurrentListId(newListId)
     },
-    [activeUsername, setCurrentListId, user]
+    [user, activeUsername, setCurrentListId]
   )
 
   const ensureDefaultList = useCallback(async () => {
@@ -163,7 +159,7 @@ export function useUserLists(user: User | null, activeUsername: string) {
         await Promise.all(
           storedLists.map(list =>
             update(ref(db), {
-              [`${LISTS_ROOT}/${list.listId}/memberProfiles/${user.uid}/username`]: activeUsername
+              [`lists/${list.listId}/memberProfiles/${user.uid}/username`]: activeUsername
             })
           )
         )
@@ -198,7 +194,7 @@ export function useUserLists(user: User | null, activeUsername: string) {
     const db = database
 
     // Listen to the user's list references
-    const userListsRef = ref(db, `users/${user.uid}/${LISTS_ROOT}`)
+    const userListsRef = ref(db, `users/${user.uid}/lists`)
 
     const unsubscribe = onValue(
       userListsRef,
@@ -224,10 +220,10 @@ export function useUserLists(user: User | null, activeUsername: string) {
         const userListIds = Object.keys(snapshot.val() as Record<string, true>)
         const listMetadataPromises = userListIds.map(async listId => {
           try {
-            const listSnapshot = await get(ref(db, `${LISTS_ROOT}/${listId}`))
+            const listSnapshot = await get(ref(db, `lists/${listId}`))
             if (!listSnapshot.exists()) {
               await update(ref(db), {
-                [`users/${user.uid}/${LISTS_ROOT}/${listId}`]: null
+                [`users/${user.uid}/lists/${listId}`]: null
               })
               return null
             }
@@ -247,7 +243,7 @@ export function useUserLists(user: User | null, activeUsername: string) {
           } catch {
             // If list metadata cannot be read (deleted/permission removed), clean up stale user index entry.
             await update(ref(db), {
-              [`users/${user.uid}/${LISTS_ROOT}/${listId}`]: null
+              [`users/${user.uid}/lists/${listId}`]: null
             })
             return null
           }
@@ -316,7 +312,6 @@ export function useUserLists(user: User | null, activeUsername: string) {
 
         setCurrentListMembers([])
         setCurrentListOwnerUid("")
-        setCurrentListLastEditedBy("")
       })
 
       return () => {
@@ -326,14 +321,13 @@ export function useUserLists(user: User | null, activeUsername: string) {
 
     const db = database
 
-    const currentListRef = ref(db, `${LISTS_ROOT}/${currentListId}`)
+    const currentListRef = ref(db, `lists/${currentListId}`)
 
     const unsubscribe = onValue(currentListRef, snapshot => {
       if (isCancelled || !snapshot.exists()) {
         if (!isCancelled) {
           setCurrentListMembers([])
           setCurrentListOwnerUid("")
-          setCurrentListLastEditedBy("")
         }
         return
       }
@@ -352,22 +346,15 @@ export function useUserLists(user: User | null, activeUsername: string) {
       const memberProfilesValue = (listData?.memberProfiles as Record<string, unknown> | undefined) ?? {}
       const itemsValue = (listData?.items as Record<string, unknown> | undefined) ?? {}
       const lastEditedByUid = typeof listData?.lastEditedByUid === "string" ? listData.lastEditedByUid : ""
+      //TODO: Remove legacy lastEditedBy once all lists have been backfilled to lastEditedByUid
       const legacyLastEditedBy = typeof listData?.lastEditedBy === "string" ? listData.lastEditedBy : ""
       const memberUids = Object.entries(membersValue)
         .filter(([, value]) => value === true)
         .map(([memberUid]) => memberUid)
 
       const matchedLegacyLastEditorUid = findUidForUsername(memberProfilesValue, memberUids, legacyLastEditedBy)
-      const resolvedLastEditedByUid = lastEditedByUid || matchedLegacyLastEditorUid
-
-      const lastEditorProfile = (
-        resolvedLastEditedByUid ? (memberProfilesValue[resolvedLastEditedByUid] as { username?: unknown } | undefined) : undefined
-      ) as { username?: unknown } | undefined
-      const lastEditorUsername = typeof lastEditorProfile?.username === "string" ? lastEditorProfile.username.trim() : ""
-      const resolvedLastEditorName = lastEditorUsername || "Unknown"
 
       setCurrentListOwnerUid(ownerUid)
-      setCurrentListLastEditedBy(resolvedLastEditedByUid ? resolvedLastEditorName : "Unknown")
 
       const nextMembers = memberUids.map(memberUid => {
         const profile = memberProfilesValue[memberUid] as { username?: unknown } | undefined
@@ -385,8 +372,8 @@ export function useUserLists(user: User | null, activeUsername: string) {
       const backfillUpdates: Record<string, string | null> = {}
 
       if (!lastEditedByUid && matchedLegacyLastEditorUid) {
-        backfillUpdates[`${LISTS_ROOT}/${currentListId}/lastEditedByUid`] = matchedLegacyLastEditorUid
-        backfillUpdates[`${LISTS_ROOT}/${currentListId}/lastEditedBy`] = null
+        backfillUpdates[`lists/${currentListId}/lastEditedByUid`] = matchedLegacyLastEditorUid
+        backfillUpdates[`lists/${currentListId}/lastEditedBy`] = null
       }
 
       for (const [itemId, itemValue] of Object.entries(itemsValue)) {
@@ -407,8 +394,8 @@ export function useUserLists(user: User | null, activeUsername: string) {
           continue
         }
 
-        backfillUpdates[`${LISTS_ROOT}/${currentListId}/items/${itemId}/lastEditedByUid`] = matchedItemEditorUid
-        backfillUpdates[`${LISTS_ROOT}/${currentListId}/items/${itemId}/lastEditedBy`] = null
+        backfillUpdates[`lists/${currentListId}/items/${itemId}/lastEditedByUid`] = matchedItemEditorUid
+        backfillUpdates[`lists/${currentListId}/items/${itemId}/lastEditedBy`] = null
       }
 
       for (const memberUid of memberUids) {
@@ -416,7 +403,7 @@ export function useUserLists(user: User | null, activeUsername: string) {
         const currentUsername = typeof profile?.username === "string" ? profile.username.trim() : ""
 
         if (memberUid === user.uid && activeUsername && currentUsername !== activeUsername) {
-          backfillUpdates[`${LISTS_ROOT}/${currentListId}/memberProfiles/${memberUid}/username`] = activeUsername
+          backfillUpdates[`lists/${currentListId}/memberProfiles/${memberUid}/username`] = activeUsername
         }
       }
 
@@ -444,44 +431,36 @@ export function useUserLists(user: User | null, activeUsername: string) {
       return
     }
 
-    const db = database
-
     const otherMembers = currentListMembers.filter(member => member.uid !== user.uid)
 
-    if (isCurrentUserOwner && otherMembers.length > 0) {
-      await update(ref(db), {
-        [`${LISTS_ROOT}/${listIdToLeave}/owner`]: otherMembers[0].uid,
-        [`${LISTS_ROOT}/${listIdToLeave}/members/${user.uid}`]: null,
-        [`${LISTS_ROOT}/${listIdToLeave}/memberProfiles/${user.uid}`]: null,
-        [`users/${user.uid}/${LISTS_ROOT}/${listIdToLeave}`]: null
-      })
-    } else if (isCurrentUserOwner && otherMembers.length === 0) {
-      await update(ref(db), {
-        [`${LISTS_ROOT}/${listIdToLeave}`]: null,
-        [`users/${user.uid}/${LISTS_ROOT}/${listIdToLeave}`]: null
-      })
-
-      switchListIfCurrent(listIdToLeave)
-
-      return
+    if (isCurrentUserOwner) {
+      if (otherMembers.length > 0) {
+        await update(ref(database), {
+          [`lists/${listIdToLeave}/owner`]: otherMembers[0].uid,
+          [`lists/${listIdToLeave}/members/${user.uid}`]: null,
+          [`lists/${listIdToLeave}/memberProfiles/${user.uid}`]: null,
+          [`users/${user.uid}/lists/${listIdToLeave}`]: null
+        })
+      } else {
+        await update(ref(database), {
+          [`lists/${listIdToLeave}`]: null,
+          [`users/${user.uid}/lists/${listIdToLeave}`]: null
+        })
+      }
     } else {
-      await update(ref(db), {
-        [`${LISTS_ROOT}/${listIdToLeave}/members/${user.uid}`]: null,
-        [`${LISTS_ROOT}/${listIdToLeave}/memberProfiles/${user.uid}`]: null,
-        [`users/${user.uid}/${LISTS_ROOT}/${listIdToLeave}`]: null
+      await update(ref(database), {
+        [`lists/${listIdToLeave}/members/${user.uid}`]: null,
+        [`lists/${listIdToLeave}/memberProfiles/${user.uid}`]: null,
+        [`users/${user.uid}/lists/${listIdToLeave}`]: null
       })
     }
 
-    switchListIfCurrent(listIdToLeave)
-
-    function switchListIfCurrent(listId: string) {
-      if (listId === currentListId) {
-        const remainingLists = storedLists.filter(list => list.listId !== listId)
-        if (remainingLists.length > 0) {
-          setCurrentListId(remainingLists[0].listId)
-        } else {
-          void ensureDefaultList()
-        }
+    if (currentListId === listIdToLeave) {
+      const remainingLists = storedLists.filter(list => list.listId !== listIdToLeave)
+      if (remainingLists.length > 0) {
+        setCurrentListId(remainingLists[0].listId)
+      } else {
+        await createList("")
       }
     }
   }
@@ -491,31 +470,12 @@ export function useUserLists(user: User | null, activeUsername: string) {
       return
     }
 
-    const db = database
-
     const trimmedName = trimAndCollapseSpaces(newName)
-    await update(ref(db), {
-      [`${LISTS_ROOT}/${listId}/listName`]: trimmedName,
-      [`${LISTS_ROOT}/${listId}/lastEditedByUid`]: user.uid
+
+    await update(ref(database), {
+      [`lists/${listId}/listName`]: trimmedName,
+      [`lists/${listId}/lastEditedByUid`]: user.uid
     })
-
-    setStoredLists(previousLists =>
-      previousLists.map(list => {
-        if (list.listId !== listId) {
-          return list
-        }
-
-        return {
-          ...list,
-          listName: trimmedName,
-          lastEditedByUid: user.uid
-        }
-      })
-    )
-
-    if (currentListId === listId) {
-      setCurrentListLastEditedBy(activeUsername)
-    }
   }
 
   async function joinList(listIdToJoin: string) {
@@ -523,7 +483,6 @@ export function useUserLists(user: User | null, activeUsername: string) {
       return
     }
 
-    const db = database
     const trimmedListId = listIdToJoin.trim()
 
     if (!trimmedListId) {
@@ -539,14 +498,14 @@ export function useUserLists(user: User | null, activeUsername: string) {
     try {
       // Add membership first. The list read rules block non-members from reading metadata,
       // so joining should rely on writes instead of a preflight read.
-      await update(ref(db), {
-        [`${LISTS_ROOT}/${trimmedListId}/members/${user.uid}`]: true,
-        [`users/${user.uid}/${LISTS_ROOT}/${trimmedListId}`]: true
+      await update(ref(database), {
+        [`lists/${trimmedListId}/members/${user.uid}`]: true,
+        [`users/${user.uid}/lists/${trimmedListId}`]: true
       })
 
       // Backfill profile after membership exists.
-      await update(ref(db), {
-        [`${LISTS_ROOT}/${trimmedListId}/memberProfiles/${user.uid}/username`]: activeUsername
+      await update(ref(database), {
+        [`lists/${trimmedListId}/memberProfiles/${user.uid}/username`]: activeUsername
       })
     } catch (error) {
       const isPermissionDenied =
@@ -554,7 +513,7 @@ export function useUserLists(user: User | null, activeUsername: string) {
         (error.code === "PERMISSION_DENIED" || error.code === "permission-denied" || error.code.endsWith("/permission-denied"))
 
       if (isPermissionDenied) {
-        throw new Error("That list number was not found.")
+        throw new Error("Permission denied")
       }
 
       throw error
@@ -568,12 +527,10 @@ export function useUserLists(user: User | null, activeUsername: string) {
       return
     }
 
-    const db = database
-
-    await update(ref(db), {
-      [`${LISTS_ROOT}/${currentListId}/members/${memberUid}`]: null,
-      [`${LISTS_ROOT}/${currentListId}/memberProfiles/${memberUid}`]: null,
-      [`users/${memberUid}/${LISTS_ROOT}/${currentListId}`]: null
+    await update(ref(database), {
+      [`lists/${currentListId}/members/${memberUid}`]: null,
+      [`lists/${currentListId}/memberProfiles/${memberUid}`]: null,
+      [`users/${memberUid}/lists/${currentListId}`]: null
     })
   }
 
@@ -582,26 +539,23 @@ export function useUserLists(user: User | null, activeUsername: string) {
       return
     }
 
-    const db = database
-
     if (!currentListMembers.some(member => member.uid === nextOwnerUid)) {
       return
     }
 
-    await update(ref(db), {
-      [`${LISTS_ROOT}/${currentListId}/owner`]: nextOwnerUid
+    await update(ref(database), {
+      [`lists/${currentListId}/owner`]: nextOwnerUid
     })
   }
 
   return {
     storedLists,
     currentListId,
-    setCurrentListId,
     isLoading,
     currentListMembers,
     currentListOwnerUid,
-    currentListLastEditedBy,
     isCurrentUserOwner,
+    currentListLastEditedByUsername,
     makeListIdFirst,
     createList,
     leaveList,

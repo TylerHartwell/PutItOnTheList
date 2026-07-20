@@ -24,7 +24,7 @@ function ShoppingListContent() {
       <ListSelectorBar
         storedLists={lists.storedLists}
         currentListId={lists.currentListId}
-        currentListLastEditedBy={lists.currentListLastEditedBy}
+        currentListLastEditedByUsername={lists.currentListLastEditedByUsername}
         onChangeList={lists.makeListIdFirst}
         onOpenSettings={settings.openSettingsModal}
       />

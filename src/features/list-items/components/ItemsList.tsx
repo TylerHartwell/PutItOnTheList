@@ -90,7 +90,6 @@ export function ItemsList({
               aria-label={`Edit ${item.itemName}`}
             >
               <span className="block">{item.itemName}</span>
-              {/* <span className="mt-0.5 block text-xs text-[#626262]">Last edited by: {item.lastEditedByUid || "Unknown"}</span> */}
             </button>
           )}
 

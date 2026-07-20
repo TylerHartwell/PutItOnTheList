@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import { LogOut, Settings, X } from "lucide-react"
-import type { UserAccountState } from "../hooks/useUserProfile"
+import { UserAccountState } from "@/shared/types/user"
 
 type EmailLinkSignedInBarProps = {
   statusMessage: string
@@ -63,7 +63,7 @@ export function EmailLinkSignedInBar({ statusMessage, errorMessage, onSignOut, a
               <input
                 id="account-username"
                 type="text"
-                autoComplete="nickname"
+                autoComplete="username"
                 value={account.usernameInput}
                 onChange={event => account.setUsernameInput(event.target.value)}
                 placeholder="Optional"

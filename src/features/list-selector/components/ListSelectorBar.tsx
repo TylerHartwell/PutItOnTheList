@@ -4,12 +4,12 @@ import { Settings } from "lucide-react"
 type ListSelectorBarProps = {
   storedLists: StoredList[]
   currentListId: string
-  currentListLastEditedBy: string
+  currentListLastEditedByUsername: string
   onChangeList: (listId: string) => void
   onOpenSettings: () => void
 }
 
-export function ListSelectorBar({ storedLists, currentListId, currentListLastEditedBy, onChangeList, onOpenSettings }: ListSelectorBarProps) {
+export function ListSelectorBar({ storedLists, currentListId, currentListLastEditedByUsername, onChangeList, onOpenSettings }: ListSelectorBarProps) {
   return (
     <div className="mx-auto my-0 w-full">
       <div className="flex items-center justify-center gap-1 text-sm">
@@ -42,7 +42,7 @@ export function ListSelectorBar({ storedLists, currentListId, currentListLastEdi
           <Settings aria-hidden="true" size={18} strokeWidth={2.25} />
         </button>
       </div>
-      <p className="mt-1 text-xs ">List last edited by: {currentListLastEditedBy || "Unknown"}</p>
+      <p className="mt-1 text-xs ">List last edited by: {currentListLastEditedByUsername}</p>
     </div>
   )
 }

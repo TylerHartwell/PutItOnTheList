@@ -14,9 +14,9 @@ export function useShoppingList(user: User | null, activeUsername: string) {
     lists: {
       storedLists: userLists.storedLists,
       currentListId: userLists.currentListId,
+      currentListLastEditedByUsername: userLists.currentListLastEditedByUsername,
       makeListIdFirst: userLists.makeListIdFirst,
-      isLoading: userLists.isLoading,
-      currentListLastEditedBy: userLists.currentListLastEditedBy
+      isLoading: userLists.isLoading
     },
     items,
     settings
