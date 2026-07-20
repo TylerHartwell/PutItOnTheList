@@ -1,12 +1,19 @@
 import type { ButtonHTMLAttributes, ReactNode } from "react"
 
 import { cn } from "@/shared/lib/cn"
+import { vibrate } from "@/shared/utils/vibrate"
 
 type SettingsButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
   children: ReactNode
 }
 
 export function SettingsButton({ className, children, ...props }: SettingsButtonProps) {
+  function handleClick(event: React.MouseEvent<HTMLButtonElement>) {
+    event.preventDefault()
+    props.onClick?.(event)
+    vibrate()
+  }
+
   return (
     <button
       type="button"
@@ -17,6 +24,7 @@ export function SettingsButton({ className, children, ...props }: SettingsButton
         "active:bg-[#fdfdfd] active:text-[#252525] active:translate-y-0.5 active:scale-[0.99]",
         className
       )}
+      onClick={handleClick}
       {...props}
     >
       {children}

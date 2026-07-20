@@ -15,7 +15,7 @@ import {
   signOut,
   type User
 } from "firebase/auth"
-import { firebaseAuth } from "@/shared/lib/firebase"
+import { firebaseAuth } from "@/shared/lib/firebase/config"
 import { useUserProfile } from "./useUserProfile"
 import { decodeAmpersandEntity, normalizePastedLinkInput } from "@/shared/utils/text"
 

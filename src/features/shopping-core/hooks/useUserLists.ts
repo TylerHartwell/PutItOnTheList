@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react"
 import { get, onValue, ref, runTransaction, update } from "firebase/database"
 import { FirebaseError } from "firebase/app"
 import { type User } from "firebase/auth"
-import { database } from "@/shared/lib/firebase"
+import { database } from "@/shared/lib/firebase/config"
 import { trimAndCollapseSpaces } from "@/shared/utils/text"
 import type { ListMember, StoredList } from "@/shared/types/shopping"
 

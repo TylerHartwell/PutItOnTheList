@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react"
 import { updateProfile, type User } from "firebase/auth"
 import { get, onValue, ref, remove, runTransaction, update } from "firebase/database"
-import { database } from "@/shared/lib/firebase"
+import { database } from "@/shared/lib/firebase/config"
 import type { UserAccountState, UserProfileRecord } from "@/shared/types/user"
 
 const USERS_ROOT = "users"

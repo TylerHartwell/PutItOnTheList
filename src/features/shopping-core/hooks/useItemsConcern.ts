@@ -1,16 +1,8 @@
 import { useEffect, useRef, useState } from "react"
 import { DataSnapshot, onValue, ref } from "firebase/database"
 import { type User } from "firebase/auth"
-import {
-  database,
-  dbAddItem,
-  dbDeleteAllItems,
-  dbDeleteItem,
-  dbDeleteMarkedItems,
-  dbMarkAllItems,
-  dbSaveEditedItem,
-  dbToggleHighlight
-} from "@/shared/lib/firebase"
+import { database } from "@/shared/lib/firebase/config"
+import { dbAddItem, dbChangeItemsHighlight, dbDeleteItems, dbSaveEditedItem } from "@/shared/lib/firebase/functions"
 import type { ShoppingItem } from "@/shared/types/shopping"
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -92,17 +84,17 @@ export function useItemsConcern(user: User | null, currentListId: string) {
   }
 
   async function toggleHighlight(item: ShoppingItem) {
-    await dbToggleHighlight(item.id, !item.itemHighlighted, editorUid, currentListId)
+    await dbChangeItemsHighlight(!item.itemHighlighted, editorUid, currentListId, [item.id])
   }
 
   async function deleteItem(itemId: string) {
-    await dbDeleteItem(currentListId, itemId, editorUid)
+    await dbDeleteItems(currentListId, editorUid, [itemId])
   }
 
   async function markAllItems(nextValue: boolean) {
     const itemIdsToChangeMark = items.filter(item => item.itemHighlighted !== nextValue).map(item => item.id)
 
-    await dbMarkAllItems(nextValue, editorUid, currentListId, itemIdsToChangeMark)
+    await dbChangeItemsHighlight(nextValue, editorUid, currentListId, itemIdsToChangeMark)
   }
 
   async function deleteMarkedItems() {
@@ -112,7 +104,7 @@ export function useItemsConcern(user: User | null, currentListId: string) {
 
     const markedItemIds = items.filter(item => item.itemHighlighted).map(item => item.id)
 
-    await dbDeleteMarkedItems(currentListId, editorUid, markedItemIds)
+    await dbDeleteItems(currentListId, editorUid, markedItemIds)
   }
 
   async function deleteAllItems() {
@@ -120,7 +112,9 @@ export function useItemsConcern(user: User | null, currentListId: string) {
       return
     }
 
-    await dbDeleteAllItems(currentListId, editorUid)
+    const allItemIds = items.map(item => item.id)
+
+    await dbDeleteItems(currentListId, editorUid, allItemIds)
   }
 
   function startEditItem(item: ShoppingItem) {
