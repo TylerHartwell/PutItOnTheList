@@ -103,3 +103,114 @@ export async function dbAddItem(itemEntry: string, userId: string, listId: strin
     printError(error, "Failed to add item:")
   }
 }
+
+export async function dbChangeListOwner(userId: string, listId: string, memberUserIds: string[]) {
+  if (!database || !userId || !listId) {
+    return
+  }
+
+  if (!memberUserIds.some(memberUserId => memberUserId === userId)) {
+    return
+  }
+
+  const updates: Record<string, unknown> = {
+    [`lists/${listId}/owner`]: userId
+  }
+
+  try {
+    await update(ref(database), updates)
+  } catch (error) {
+    printError(error, "Failed to change list owner:")
+  }
+}
+
+export async function dbRemoveListMember(listId: string, userId: string) {
+  if (!database || !listId || !userId) {
+    return
+  }
+
+  const updates: Record<string, unknown> = {
+    [`lists/${listId}/members/${userId}`]: null,
+    [`lists/${listId}/memberProfiles/${userId}`]: null,
+    [`users/${userId}/lists/${listId}`]: null
+  }
+
+  try {
+    await update(ref(database), updates)
+  } catch (error) {
+    printError(error, "Failed to remove list member:")
+  }
+}
+
+export async function dbRenameList(listId: string, userId: string, newName: string) {
+  if (!database || !userId || !listId) {
+    return
+  }
+
+  const trimmedName = trimAndCollapseSpaces(newName)
+  if (!trimmedName) {
+    return
+  }
+
+  const updates: Record<string, unknown> = {
+    [`lists/${listId}/listName`]: trimmedName,
+    [`lists/${listId}/lastEditedByUid`]: userId
+  }
+
+  try {
+    await update(ref(database), updates)
+  } catch (error) {
+    printError(error, "Failed to rename list:")
+  }
+}
+
+export async function dbJoinList(listId: string, userId: string, username: string) {
+  if (!database || !userId || !listId || !username) {
+    return
+  }
+
+  const updates: Record<string, unknown> = {
+    [`lists/${listId}/members/${userId}`]: true,
+    [`users/${userId}/lists/${listId}`]: true,
+    [`lists/${listId}/memberProfiles/${userId}/username`]: username
+  }
+
+  try {
+    await update(ref(database), updates)
+  } catch (error) {
+    printError(error, "Failed to join list:")
+  }
+
+  return listId
+}
+
+export async function dbLeaveList(listId: string, userId: string, memberUserIds: string[], ownerUserId: string) {
+  if (!database || !userId || !listId || !memberUserIds) {
+    return
+  }
+
+  const otherMemberUserIds = memberUserIds.filter(memberUserId => memberUserId !== userId)
+
+  const updates: Record<string, unknown> = {
+    [`users/${userId}/lists/${listId}`]: null
+  }
+
+  if (userId === ownerUserId) {
+    if (otherMemberUserIds.length > 0) {
+      updates[`lists/${listId}/owner`] = otherMemberUserIds[0]
+      updates[`lists/${listId}/members/${userId}`] = null
+      updates[`lists/${listId}/memberProfiles/${userId}`] = null
+    } else {
+      updates[`lists/${listId}`] = null
+    }
+  } else {
+    updates[`lists/${listId}/members/${userId}`] = null
+    updates[`lists/${listId}/memberProfiles/${userId}`] = null
+  }
+
+  try {
+    await update(ref(database), updates)
+  } catch (error) {
+    printError(error, "Failed to leave list:")
+  }
+}

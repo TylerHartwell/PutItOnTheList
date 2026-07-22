@@ -32,6 +32,7 @@ function ShoppingListContent() {
       <SettingsModal
         currentListId={lists.currentListId}
         currentListNameInput={settings.currentListNameInput}
+        currentListNameError={settings.currentListNameError}
         newListNameInput={settings.newListNameInput}
         joinListIdInput={settings.joinListIdInput}
         joinListError={settings.joinListError}

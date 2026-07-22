@@ -3,6 +3,7 @@ import { SettingsButton } from "./SettingsButton"
 type ListEditFormProps = {
   currentListId: string
   currentListNameInput: string
+  currentListNameError: string
   copyStatus: "idle" | "success"
   onCurrentListNameChange: (value: string) => void
   onSaveCurrentListName: () => void
@@ -13,6 +14,7 @@ type ListEditFormProps = {
 const ListEditForm = ({
   currentListId,
   currentListNameInput,
+  currentListNameError,
   copyStatus,
   onCurrentListNameChange,
   onSaveCurrentListName,
@@ -59,13 +61,18 @@ const ListEditForm = ({
         <input
           id="current-list-name"
           className="m-0 min-w-0 flex-1 rounded-md border-2 border-transparent bg-[#dce1eb] p-2 outline-none focus:border-black"
-          placeholder="Optional"
+          placeholder="Enter a new name"
           autoComplete="off"
           value={currentListNameInput}
           onChange={event => onCurrentListNameChange(event.target.value)}
         />
         <SettingsButton type="submit">Save</SettingsButton>
       </div>
+      {currentListNameError ? (
+        <p className="mt-1 text-sm text-[#8f2a2a]" role="status" aria-live="polite">
+          {currentListNameError}
+        </p>
+      ) : null}
 
       <div className="mt-2.5 flex justify-center">
         <SettingsButton

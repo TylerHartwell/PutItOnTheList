@@ -2,11 +2,11 @@
 
 import { useCallback, useEffect, useRef, useState } from "react"
 import { get, onValue, ref, runTransaction, update } from "firebase/database"
-import { FirebaseError } from "firebase/app"
 import { type User } from "firebase/auth"
 import { database } from "@/shared/lib/firebase/config"
 import { trimAndCollapseSpaces } from "@/shared/utils/text"
 import type { ListMember, StoredList } from "@/shared/types/shopping"
+import { dbChangeListOwner, dbJoinList, dbLeaveList, dbRemoveListMember, dbRenameList } from "@/shared/lib/firebase/functions"
 
 const MAX_CREATE_LIST_ATTEMPTS = 10
 
@@ -59,16 +59,24 @@ export function useUserLists(user: User | null, activeUsername: string) {
   const isCurrentUserOwner = Boolean(user?.uid === currentListOwnerUid)
   const currentListLastEditedByUsername = currentListMembers.find(member => member.uid === currentListOwnerUid)?.username || "Unknown"
 
+  const editorUid = user?.uid || ""
+
   useEffect(() => {
-    if (!database || !user || !hasResolvedInitialCurrentListRef.current) {
-      return
+    async function updateCurrentListId() {
+      if (!database || !user || !hasResolvedInitialCurrentListRef.current) {
+        return
+      }
+
+      try {
+        await update(ref(database), {
+          [`users/${user.uid}/currentListId`]: currentListId || null
+        })
+      } catch {
+        // Keep list selection responsive even if preference persistence fails.
+      }
     }
 
-    void update(ref(database), {
-      [`users/${user.uid}/currentListId`]: currentListId || null
-    }).catch(() => {
-      // Keep list selection responsive even if preference persistence fails.
-    })
+    void updateCurrentListId()
   }, [currentListId, user])
 
   const createList = useCallback(
@@ -427,33 +435,9 @@ export function useUserLists(user: User | null, activeUsername: string) {
   }
 
   async function leaveList(listIdToLeave: string) {
-    if (!database || !user) {
-      return
-    }
+    const memberUserIds = currentListMembers.map(member => member.uid)
 
-    const otherMembers = currentListMembers.filter(member => member.uid !== user.uid)
-
-    if (isCurrentUserOwner) {
-      if (otherMembers.length > 0) {
-        await update(ref(database), {
-          [`lists/${listIdToLeave}/owner`]: otherMembers[0].uid,
-          [`lists/${listIdToLeave}/members/${user.uid}`]: null,
-          [`lists/${listIdToLeave}/memberProfiles/${user.uid}`]: null,
-          [`users/${user.uid}/lists/${listIdToLeave}`]: null
-        })
-      } else {
-        await update(ref(database), {
-          [`lists/${listIdToLeave}`]: null,
-          [`users/${user.uid}/lists/${listIdToLeave}`]: null
-        })
-      }
-    } else {
-      await update(ref(database), {
-        [`lists/${listIdToLeave}/members/${user.uid}`]: null,
-        [`lists/${listIdToLeave}/memberProfiles/${user.uid}`]: null,
-        [`users/${user.uid}/lists/${listIdToLeave}`]: null
-      })
-    }
+    await dbLeaveList(currentListId, editorUid, memberUserIds, currentListOwnerUid)
 
     if (currentListId === listIdToLeave) {
       const remainingLists = storedLists.filter(list => list.listId !== listIdToLeave)
@@ -466,86 +450,52 @@ export function useUserLists(user: User | null, activeUsername: string) {
   }
 
   async function renameList(listId: string, newName: string) {
-    if (!database || !user) {
-      return
-    }
+    await dbRenameList(listId, editorUid, newName)
 
-    const trimmedName = trimAndCollapseSpaces(newName)
+    setStoredLists(previousLists =>
+      previousLists.map(list => {
+        if (list.listId !== listId) {
+          return list
+        }
 
-    await update(ref(database), {
-      [`lists/${listId}/listName`]: trimmedName,
-      [`lists/${listId}/lastEditedByUid`]: user.uid
-    })
+        return {
+          ...list,
+          listName: newName,
+          lastEditedByUid: editorUid
+        }
+      })
+    )
   }
 
-  async function joinList(listIdToJoin: string) {
-    if (!database || !user) {
+  async function joinList(listId: string) {
+    if (storedLists.some(list => list.listId === listId)) {
+      setCurrentListId(listId)
       return
     }
 
-    const trimmedListId = listIdToJoin.trim()
+    const joinedListId = await dbJoinList(listId, editorUid, activeUsername)
 
-    if (!trimmedListId) {
-      throw new Error("Enter a list number to join.")
+    if (joinedListId) {
+      setCurrentListId(joinedListId)
     }
-
-    // Check if user is already in this list
-    if (storedLists.some(list => list.listId === trimmedListId)) {
-      setCurrentListId(trimmedListId)
-      return
-    }
-
-    try {
-      // Add membership first. The list read rules block non-members from reading metadata,
-      // so joining should rely on writes instead of a preflight read.
-      await update(ref(database), {
-        [`lists/${trimmedListId}/members/${user.uid}`]: true,
-        [`users/${user.uid}/lists/${trimmedListId}`]: true
-      })
-
-      // Backfill profile after membership exists.
-      await update(ref(database), {
-        [`lists/${trimmedListId}/memberProfiles/${user.uid}/username`]: activeUsername
-      })
-    } catch (error) {
-      const isPermissionDenied =
-        error instanceof FirebaseError &&
-        (error.code === "PERMISSION_DENIED" || error.code === "permission-denied" || error.code.endsWith("/permission-denied"))
-
-      if (isPermissionDenied) {
-        throw new Error("Permission denied")
-      }
-
-      throw error
-    }
-
-    setCurrentListId(trimmedListId)
   }
 
-  async function removeMember(memberUid: string) {
-    if (!database || !user || !currentListId || !isCurrentUserOwner || memberUid === currentListOwnerUid) {
+  async function removeMember(userId: string) {
+    if (!isCurrentUserOwner || userId === currentListOwnerUid) {
       return
     }
 
-    await update(ref(database), {
-      [`lists/${currentListId}/members/${memberUid}`]: null,
-      [`lists/${currentListId}/memberProfiles/${memberUid}`]: null,
-      [`users/${memberUid}/lists/${currentListId}`]: null
-    })
+    await dbRemoveListMember(currentListId, userId)
   }
 
   async function transferOwnership(nextOwnerUid: string) {
-    if (!database || !user || !currentListId || !isCurrentUserOwner) {
+    if (!isCurrentUserOwner) {
       return
     }
 
-    if (!currentListMembers.some(member => member.uid === nextOwnerUid)) {
-      return
-    }
+    const memberUserIds = currentListMembers.map(member => member.uid)
 
-    await update(ref(database), {
-      [`lists/${currentListId}/owner`]: nextOwnerUid
-    })
+    await dbChangeListOwner(nextOwnerUid, currentListId, memberUserIds)
   }
 
   return {

@@ -11,12 +11,14 @@ export function useSettingsConcern({ userLists }: SettingsConcernParams) {
   const [newListNameInput, setNewListNameInput] = useState("")
   const [joinListIdInput, setJoinListIdInput] = useState("")
   const [joinListError, setJoinListError] = useState("")
+  const [currentListNameError, setCurrentListNameError] = useState("")
   const currentListName = userLists.storedLists.find(list => list.listId === userLists.currentListId)?.listName ?? ""
 
   const [currentListNameInput, setCurrentListNameInput] = useState(currentListName)
 
   function reset() {
     setCurrentListNameInput(currentListName)
+    setCurrentListNameError("")
     setNewListNameInput("")
     setJoinListIdInput("")
     setJoinListError("")
@@ -28,12 +30,14 @@ export function useSettingsConcern({ userLists }: SettingsConcernParams) {
   }
 
   function closeSettingsModal() {
-    reset()
     setIsOpen(false)
   }
 
   function changeCurrentListNameInput(value: string) {
     setCurrentListNameInput(value)
+    if (currentListNameError) {
+      setCurrentListNameError("")
+    }
   }
 
   function changeNewListNameInput(value: string) {
@@ -103,6 +107,11 @@ export function useSettingsConcern({ userLists }: SettingsConcernParams) {
     }
 
     const trimmedName = trimAndCollapseSpaces(currentListNameInput)
+    if (!trimmedName) {
+      setCurrentListNameError("Enter a list name.")
+      return
+    }
+
     await userLists.renameList(userLists.currentListId, trimmedName)
     closeSettingsModal()
   }
@@ -121,6 +130,7 @@ export function useSettingsConcern({ userLists }: SettingsConcernParams) {
     closeSettingsModal,
     currentListNameInput,
     changeCurrentListNameInput,
+    currentListNameError,
     newListNameInput,
     changeNewListNameInput,
     joinListIdInput,

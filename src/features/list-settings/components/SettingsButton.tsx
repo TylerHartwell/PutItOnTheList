@@ -9,7 +9,6 @@ type SettingsButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
 
 export function SettingsButton({ className, children, ...props }: SettingsButtonProps) {
   function handleClick(event: React.MouseEvent<HTMLButtonElement>) {
-    event.preventDefault()
     props.onClick?.(event)
     vibrate()
   }

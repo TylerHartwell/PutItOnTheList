@@ -21,6 +21,7 @@ function getMemberDisplayName(member: ListMember) {
 type SettingsModalProps = DialogHTMLAttributes<HTMLDialogElement> & {
   currentListId: string
   currentListNameInput: string
+  currentListNameError: string
   newListNameInput: string
   joinListIdInput: string
   joinListError: string
@@ -44,6 +45,7 @@ type SettingsModalProps = DialogHTMLAttributes<HTMLDialogElement> & {
 export function SettingsModal({
   currentListId,
   currentListNameInput,
+  currentListNameError,
   newListNameInput,
   joinListIdInput,
   joinListError,
@@ -109,6 +111,7 @@ export function SettingsModal({
         <ListEditForm
           currentListId={currentListId}
           currentListNameInput={currentListNameInput}
+          currentListNameError={currentListNameError}
           copyStatus={copyStatus}
           onCurrentListNameChange={onCurrentListNameChange}
           onSaveCurrentListName={onSaveCurrentListName}
