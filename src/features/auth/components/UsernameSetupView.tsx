@@ -1,7 +1,7 @@
 "use client"
 
+import { UserAccountState } from "@/shared/types/user"
 import { Loader2, LogOut } from "lucide-react"
-import type { UserAccountState } from "../hooks/useUserProfile"
 
 type UsernameSetupViewProps = {
   account: UserAccountState
