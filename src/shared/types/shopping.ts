@@ -3,6 +3,8 @@ export type ShoppingItem = {
   itemName: string
   itemHighlighted: boolean
   lastEditedByUid: string
+  createdAt?: number
+  updatedAt?: number
 }
 
 export type StoredList = {
@@ -10,6 +12,8 @@ export type StoredList = {
   listName: string
   ownerUid: string
   lastEditedByUid: string
+  createdAt?: number
+  updatedAt?: number
 }
 
 export type ListMember = {

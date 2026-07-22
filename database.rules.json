@@ -19,6 +19,12 @@
         "listName": {
           ".validate": "newData.isString() && newData.val().length <= 80"
         },
+        "createdAt": {
+          ".validate": "newData.isNumber()"
+        },
+        "updatedAt": {
+          ".validate": "newData.isNumber()"
+        },
         "lastEditedBy": {
           ".validate": "newData.isString() && newData.val().length <= 32"
         },
@@ -46,6 +52,12 @@
             },
             "itemHighlighted": {
               ".validate": "newData.isBoolean()"
+            },
+            "createdAt": {
+              ".validate": "newData.isNumber()"
+            },
+            "updatedAt": {
+              ".validate": "newData.isNumber()"
             },
             "lastEditedBy": {
               ".validate": "newData.isString() && newData.val().length <= 32"

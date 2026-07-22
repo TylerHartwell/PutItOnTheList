@@ -92,6 +92,8 @@ export function useUserLists(user: User | null, activeUsername: string) {
         owner: user.uid,
         listName: trimmedName,
         lastEditedByUid: user.uid,
+        createdAt: Date.now(),
+        updatedAt: Date.now(),
         members: {
           [user.uid]: true
         },
