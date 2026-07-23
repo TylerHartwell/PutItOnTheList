@@ -1,8 +1,7 @@
 import { useMemo, useState, type RefObject } from "react"
-import { DragDropProvider, PointerSensor, type DragEndEvent } from "@dnd-kit/react"
-import { PointerActivationConstraints } from "@dnd-kit/dom"
-import { useSortable } from "@dnd-kit/react/sortable"
-import { arrayMove } from "@dnd-kit/sortable"
+import { closestCenter, DndContext, PointerSensor, type DragEndEvent, useSensor, useSensors } from "@dnd-kit/core"
+import { arrayMove, SortableContext, useSortable, verticalListSortingStrategy } from "@dnd-kit/sortable"
+import { CSS } from "@dnd-kit/utilities"
 import type { ShoppingItem } from "@/shared/types/shopping"
 import { Check, GripVertical, X } from "lucide-react"
 import { vibrate } from "@/shared/utils/vibrate"
@@ -22,7 +21,6 @@ type ItemsListProps = {
 
 type SortableItemRowProps = {
   item: ShoppingItem
-  index: number
   editingItemId: string | null
   editingItemText: string
   editInputRef: RefObject<HTMLInputElement | null>
@@ -35,7 +33,6 @@ type SortableItemRowProps = {
 
 function SortableItemRow({
   item,
-  index,
   editingItemId,
   editingItemText,
   editInputRef,
@@ -45,7 +42,7 @@ function SortableItemRow({
   onSaveEditedItem,
   onToggleHighlight
 }: SortableItemRowProps) {
-  const { ref, handleRef, isDragging: isActive } = useSortable({ id: item.id, index })
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging: isActive } = useSortable({ id: item.id })
 
   function handleToggleHighlight() {
     onToggleHighlight(item)
@@ -69,12 +66,14 @@ function SortableItemRow({
 
   return (
     <li
-      ref={ref}
+      ref={setNodeRef}
       data-item-id={item.id}
       className={`flex items-center justify-start rounded-md border-2 border-transparent py-0 shadow-[0_1px_4px_rgba(0,0,0,0.2)] hover:shadow-[0_0_7px_rgba(0,0,0,0.8)] ${
         item.itemHighlighted ? "bg-[#fffdc1]" : "bg-[#fffdf8]"
       } ${isActive ? "scale-[1.02] bg-[rgba(255,255,255,0.9)] shadow-[0_15px_15px_rgba(34,33,81,0.25)]" : ""}`}
       style={{
+        transform: CSS.Transform.toString(transform),
+        transition,
         touchAction: isActive ? "none" : "pan-y",
         zIndex: isActive ? 20 : undefined
       }}
@@ -123,10 +122,11 @@ function SortableItemRow({
       </button>
 
       <button
-        ref={handleRef}
         type="button"
         className="touch-none cursor-grab bg-transparent p-2 text-center font-black leading-none text-[#fc7371] active:scale-130"
         aria-label={`Reorder ${item.itemName}`}
+        {...attributes}
+        {...listeners}
       >
         <GripVertical className="h-5 w-5" strokeWidth={2.5} />
       </button>
@@ -157,27 +157,30 @@ export function ItemsList({
     return [...orderedIds, ...missingIds].map(id => itemMap.get(id)).filter((item): item is ShoppingItem => item != null)
   }, [items, orderedItemIds])
 
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 1
+      }
+    })
+  )
+
   function handleDragEnd(event: DragEndEvent) {
-    if (event.canceled) {
-      return
-    }
+    const { active, over } = event
 
-    const sourceId = event.operation.source?.id
-    const targetId = event.operation.target?.id
-
-    if (!sourceId || !targetId || String(sourceId) === String(targetId)) {
+    if (!over || active.id === over.id) {
       return
     }
 
     const currentIds = orderedItemIds.length > 0 ? orderedItemIds : items.map(item => item.id)
-    const oldIndex = currentIds.indexOf(String(sourceId))
-    const newIndex = currentIds.indexOf(String(targetId))
+    const oldIndex = currentIds.indexOf(String(active.id))
+    const newIndex = currentIds.indexOf(String(over.id))
 
     if (oldIndex >= 0 && newIndex >= 0) {
       setOrderedItemIds(arrayMove(currentIds, oldIndex, newIndex))
     }
 
-    onMoveItem(String(sourceId), String(targetId))
+    onMoveItem(String(active.id), String(over.id))
     vibrate()
   }
 
@@ -186,31 +189,25 @@ export function ItemsList({
   }
 
   return (
-    <DragDropProvider
-      onDragEnd={handleDragEnd}
-      sensors={[
-        PointerSensor.configure({
-          activationConstraints: [new PointerActivationConstraints.Delay({ value: 0, tolerance: 0 })]
-        })
-      ]}
-    >
-      <ul className="my-2.5 flex list-none flex-col gap-2 p-0" data-list-root>
-        {orderedItems.map((item, index) => (
-          <SortableItemRow
-            key={item.id}
-            item={item}
-            index={index}
-            editingItemId={editingItemId}
-            editingItemText={editingItemText}
-            editInputRef={editInputRef}
-            onDeleteItem={onDeleteItem}
-            onStartEditItem={onStartEditItem}
-            onEditingItemTextChange={onEditingItemTextChange}
-            onSaveEditedItem={onSaveEditedItem}
-            onToggleHighlight={onToggleHighlight}
-          />
-        ))}
-      </ul>
-    </DragDropProvider>
+    <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+      <SortableContext items={orderedItems.map(item => item.id)} strategy={verticalListSortingStrategy}>
+        <ul className="my-2.5 flex list-none flex-col gap-2 p-0" data-list-root>
+          {orderedItems.map(item => (
+            <SortableItemRow
+              key={item.id}
+              item={item}
+              editingItemId={editingItemId}
+              editingItemText={editingItemText}
+              editInputRef={editInputRef}
+              onDeleteItem={onDeleteItem}
+              onStartEditItem={onStartEditItem}
+              onEditingItemTextChange={onEditingItemTextChange}
+              onSaveEditedItem={onSaveEditedItem}
+              onToggleHighlight={onToggleHighlight}
+            />
+          ))}
+        </ul>
+      </SortableContext>
+    </DndContext>
   )
 }

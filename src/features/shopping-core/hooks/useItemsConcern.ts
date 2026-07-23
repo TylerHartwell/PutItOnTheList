@@ -133,9 +133,7 @@ export function useItemsConcern(user: User | null, currentListId: string) {
       reorderedItems.push({ ...currentItem, sortOrder: nextSortOrder })
     }
 
-    setItems(reorderedItems)
-
-    await dbReorderItems(
+    const didPersist = await dbReorderItems(
       currentListId,
       editorUid,
       reorderedItems.map(item => ({
@@ -143,6 +141,10 @@ export function useItemsConcern(user: User | null, currentListId: string) {
         sortOrder: item.sortOrder ?? generateSequentialSortOrder(0)
       }))
     )
+
+    if (didPersist) {
+      setItems(reorderedItems)
+    }
   }
 
   async function toggleHighlight(item: ShoppingItem) {

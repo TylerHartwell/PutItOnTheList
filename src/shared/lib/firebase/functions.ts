@@ -159,7 +159,7 @@ export async function dbUpdateItemSortOrder(listId: string, itemId: string, sort
 
 export async function dbReorderItems(listId: string, userId: string, itemOrder: Array<{ id: string; sortOrder: string }>) {
   if (!database || !userId || !listId) {
-    return
+    return false
   }
 
   const now = getTimestamp()
@@ -176,8 +176,10 @@ export async function dbReorderItems(listId: string, userId: string, itemOrder: 
 
   try {
     await update(ref(database), updates)
+    return true
   } catch (error) {
     printError(error, "Failed to reorder items:")
+    return false
   }
 }
 
