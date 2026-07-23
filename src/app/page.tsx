@@ -74,6 +74,7 @@ function ShoppingListContent() {
         onEditingItemTextChange={itemsState.setEditingItemText}
         onSaveEditedItem={itemsState.saveEditedItem}
         onToggleHighlight={itemsState.toggleHighlight}
+        onMoveItem={itemsState.moveItem}
       />
 
       <BulkActions

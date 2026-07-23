@@ -59,6 +59,9 @@
             "updatedAt": {
               ".validate": "newData.isNumber()"
             },
+            "sortOrder": {
+              ".validate": "newData.isString() && newData.val().length > 0"
+            },
             "lastEditedBy": {
               ".validate": "newData.isString() && newData.val().length <= 32"
             },

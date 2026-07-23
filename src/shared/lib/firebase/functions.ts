@@ -16,6 +16,49 @@ function getTimestamp() {
   return Date.now()
 }
 
+export function generateSequentialSortOrder(index: number) {
+  return String(index).padStart(6, "0")
+}
+
+export function generateFractionalIndex(beforeSortOrder: string | null, afterSortOrder: string | null) {
+  if (!beforeSortOrder && !afterSortOrder) {
+    return "a0"
+  }
+
+  if (!beforeSortOrder) {
+    return `${afterSortOrder}~`
+  }
+
+  if (!afterSortOrder) {
+    return `${beforeSortOrder}~`
+  }
+
+  let index = 0
+
+  while (index < Math.max(beforeSortOrder.length, afterSortOrder.length)) {
+    const beforeChar = beforeSortOrder[index] ?? ""
+    const afterChar = afterSortOrder[index] ?? ""
+
+    if (beforeChar === afterChar) {
+      index += 1
+      continue
+    }
+
+    if (beforeChar && afterChar) {
+      const beforeCode = beforeChar.charCodeAt(0)
+      const afterCode = afterChar.charCodeAt(0)
+
+      if (beforeCode + 1 < afterCode) {
+        return `${beforeSortOrder.slice(0, index)}${String.fromCharCode(beforeCode + 1)}`
+      }
+    }
+
+    return `${beforeSortOrder.slice(0, index)}${beforeChar || "a"}0`
+  }
+
+  return `${beforeSortOrder}0`
+}
+
 export async function dbSaveEditedItem(listId: string, itemId: string, newItemName: string, userId: string) {
   if (!database || !itemId || !userId || !listId) {
     return
@@ -27,14 +70,15 @@ export async function dbSaveEditedItem(listId: string, itemId: string, newItemNa
 
   const updates: Record<string, unknown> = {
     [`lists/${listId}/lastEditedByUid`]: userId,
-    [`lists/${listId}/updatedAt`]: now,
-    [`lists/${listId}/items/${itemId}`]: trimmedName
-      ? {
-          itemName: trimmedName,
-          lastEditedByUid: userId,
-          updatedAt: now
-        }
-      : null
+    [`lists/${listId}/updatedAt`]: now
+  }
+
+  if (trimmedName) {
+    updates[`lists/${listId}/items/${itemId}/itemName`] = trimmedName
+    updates[`lists/${listId}/items/${itemId}/lastEditedByUid`] = userId
+    updates[`lists/${listId}/items/${itemId}/updatedAt`] = now
+  } else {
+    updates[`lists/${listId}/items/${itemId}`] = null
   }
 
   try {
@@ -92,7 +136,52 @@ export async function dbChangeItemsHighlight(nextValue: boolean, userId: string,
   }
 }
 
-export async function dbAddItem(itemEntry: string, userId: string, listId: string) {
+export async function dbUpdateItemSortOrder(listId: string, itemId: string, sortOrder: string, userId: string) {
+  if (!database || !itemId || !userId || !listId) {
+    return
+  }
+
+  const now = getTimestamp()
+
+  const updates: Record<string, unknown> = {
+    [`lists/${listId}/items/${itemId}/sortOrder`]: sortOrder,
+    [`lists/${listId}/items/${itemId}/updatedAt`]: now,
+    [`lists/${listId}/lastEditedByUid`]: userId,
+    [`lists/${listId}/updatedAt`]: now
+  }
+
+  try {
+    await update(ref(database), updates)
+  } catch (error) {
+    printError(error, "Failed to update item sort order:")
+  }
+}
+
+export async function dbReorderItems(listId: string, userId: string, itemOrder: Array<{ id: string; sortOrder: string }>) {
+  if (!database || !userId || !listId) {
+    return
+  }
+
+  const now = getTimestamp()
+
+  const updates: Record<string, unknown> = {
+    [`lists/${listId}/lastEditedByUid`]: userId,
+    [`lists/${listId}/updatedAt`]: now
+  }
+
+  for (const item of itemOrder) {
+    updates[`lists/${listId}/items/${item.id}/sortOrder`] = item.sortOrder
+    updates[`lists/${listId}/items/${item.id}/updatedAt`] = now
+  }
+
+  try {
+    await update(ref(database), updates)
+  } catch (error) {
+    printError(error, "Failed to reorder items:")
+  }
+}
+
+export async function dbAddItem(itemEntry: string, userId: string, listId: string, sortOrder?: string) {
   const itemName = trimAndCollapseSpaces(itemEntry)
 
   if (!database || !itemName || !userId || !listId) {
@@ -111,7 +200,8 @@ export async function dbAddItem(itemEntry: string, userId: string, listId: strin
       itemHighlighted: false,
       lastEditedByUid: userId,
       createdAt: now,
-      updatedAt: now
+      updatedAt: now,
+      sortOrder: sortOrder ?? generateFractionalIndex(null, null)
     },
     [`lists/${listId}/lastEditedByUid`]: userId,
     [`lists/${listId}/updatedAt`]: now

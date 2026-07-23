@@ -5,6 +5,7 @@ export type ShoppingItem = {
   lastEditedByUid: string
   createdAt?: number
   updatedAt?: number
+  sortOrder?: string
 }
 
 export type StoredList = {
