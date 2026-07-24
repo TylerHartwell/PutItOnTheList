@@ -20,7 +20,7 @@ export function generateSequentialSortOrder(index: number) {
   return String(index).padStart(6, "0")
 }
 
-export function generateFractionalIndex(beforeSortOrder: string | null, afterSortOrder: string | null) {
+function generateFractionalIndex(beforeSortOrder: string | null, afterSortOrder: string | null) {
   if (!beforeSortOrder && !afterSortOrder) {
     return "a0"
   }
@@ -133,27 +133,6 @@ export async function dbChangeItemsHighlight(nextValue: boolean, userId: string,
     await update(ref(database), updates)
   } catch (error) {
     printError(error, "Failed to change item highlight:")
-  }
-}
-
-export async function dbUpdateItemSortOrder(listId: string, itemId: string, sortOrder: string, userId: string) {
-  if (!database || !itemId || !userId || !listId) {
-    return
-  }
-
-  const now = getTimestamp()
-
-  const updates: Record<string, unknown> = {
-    [`lists/${listId}/items/${itemId}/sortOrder`]: sortOrder,
-    [`lists/${listId}/items/${itemId}/updatedAt`]: now,
-    [`lists/${listId}/lastEditedByUid`]: userId,
-    [`lists/${listId}/updatedAt`]: now
-  }
-
-  try {
-    await update(ref(database), updates)
-  } catch (error) {
-    printError(error, "Failed to update item sort order:")
   }
 }
 

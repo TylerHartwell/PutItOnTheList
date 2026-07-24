@@ -113,6 +113,7 @@ export function useItemsConcern(user: User | null, currentListId: string) {
       return
     }
 
+    const previousItems = [...items]
     const nextItems = [...items]
     const sourceIndex = nextItems.findIndex(item => item.id === itemId)
     const targetIndex = nextItems.findIndex(item => item.id === targetItemId)
@@ -133,6 +134,8 @@ export function useItemsConcern(user: User | null, currentListId: string) {
       reorderedItems.push({ ...currentItem, sortOrder: nextSortOrder })
     }
 
+    setItems(reorderedItems)
+
     const didPersist = await dbReorderItems(
       currentListId,
       editorUid,
@@ -142,8 +145,8 @@ export function useItemsConcern(user: User | null, currentListId: string) {
       }))
     )
 
-    if (didPersist) {
-      setItems(reorderedItems)
+    if (!didPersist) {
+      setItems(previousItems)
     }
   }
 
