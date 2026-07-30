@@ -1,6 +1,7 @@
 import type { Metadata } from "next"
 import { Rubik } from "next/font/google"
 import "./globals.css"
+import { IOSPullToRefresh } from "@/shared/components/IOSPullToRefresh"
 
 const rubik = Rubik({
   variable: "--font-rubik",
@@ -39,7 +40,10 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className={`${rubik.variable} antialiased `}>
-      <body className="min-h-full flex flex-col">{children}</body>
+      <body className="min-h-full flex flex-col">
+        <IOSPullToRefresh />
+        {children}
+      </body>
     </html>
   )
 }
