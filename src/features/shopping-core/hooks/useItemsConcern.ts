@@ -1,96 +1,29 @@
 import { useEffect, useRef, useState } from "react"
-import { DataSnapshot, onValue, ref } from "firebase/database"
-import { type User } from "firebase/auth"
-import { database } from "@/shared/lib/firebase/config"
 import {
   dbAddItem,
   dbChangeItemsHighlight,
   dbDeleteItems,
   dbReorderItems,
   dbSaveEditedItem,
+  dbSubscribeToListItems,
   generateSequentialSortOrder
 } from "@/shared/lib/firebase/functions"
 import type { ShoppingItem } from "@/shared/types/shopping"
 
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null && !Array.isArray(value)
-}
-
-function toShoppingItem(id: string, value: unknown, fallbackOrder: string): ShoppingItem | null {
-  if (!isRecord(value)) return null
-
-  const itemName = value.itemName
-  if (typeof itemName !== "string") return null
-
-  const sortOrder =
-    typeof value.sortOrder === "string"
-      ? value.sortOrder
-      : typeof value.createdAt === "number"
-        ? `${value.createdAt}`
-        : typeof value.updatedAt === "number"
-          ? `${value.updatedAt}`
-          : fallbackOrder
-
-  return {
-    id,
-    itemName,
-    itemHighlighted: typeof value.itemHighlighted === "boolean" ? value.itemHighlighted : false,
-    lastEditedByUid: typeof value.lastEditedByUid === "string" ? value.lastEditedByUid : "",
-    createdAt: typeof value.createdAt === "number" ? value.createdAt : undefined,
-    updatedAt: typeof value.updatedAt === "number" ? value.updatedAt : undefined,
-    sortOrder
-  }
-}
-
-function readItemsFromSnapshot(snapshot: DataSnapshot): ShoppingItem[] {
-  const rawData = snapshot.val()
-
-  if (!isRecord(rawData)) return []
-
-  const nextItems: ShoppingItem[] = []
-
-  for (const [id, value] of Object.entries(rawData)) {
-    const parsed = toShoppingItem(id, value, nextItems.length.toString())
-
-    if (parsed) {
-      nextItems.push(parsed)
-    }
-  }
-
-  return nextItems.sort((left, right) => {
-    const leftOrder = left.sortOrder ?? ""
-    const rightOrder = right.sortOrder ?? ""
-
-    return leftOrder.localeCompare(rightOrder)
-  })
-}
-
-export function useItemsConcern(user: User | null, currentListId: string) {
+export function useItemsConcern(userId: string, currentListId: string) {
   const [items, setItems] = useState<ShoppingItem[]>([])
   const [itemEntry, setItemEntry] = useState("")
   const [editingItemId, setEditingItemId] = useState<string>("")
   const [editingItemText, setEditingItemText] = useState("")
   const editInputRef = useRef<HTMLInputElement | null>(null)
 
-  const editorUid = user?.uid || ""
-  const itemsPath = `lists/${currentListId}/items`
-
   useEffect(() => {
-    if (!database || !editorUid || !currentListId) {
-      return
-    }
-
-    const itemsRef = ref(database, itemsPath)
-
-    const unsubscribeCurrent = onValue(itemsRef, snapshot => {
-      const nextItems = readItemsFromSnapshot(snapshot)
-      setItems(nextItems)
-    })
+    const unsubscribeToListItems = dbSubscribeToListItems(currentListId, userId, setItems)
 
     return () => {
-      unsubscribeCurrent()
+      unsubscribeToListItems?.()
     }
-  }, [currentListId, editorUid, itemsPath])
+  }, [currentListId, userId])
 
   useEffect(() => {
     if (editingItemId && editInputRef.current) {
@@ -104,12 +37,12 @@ export function useItemsConcern(user: User | null, currentListId: string) {
 
   async function addItem() {
     const nextSortOrder = generateSequentialSortOrder(items.length)
-    await dbAddItem(itemEntry, editorUid, currentListId, nextSortOrder)
+    await dbAddItem(itemEntry, userId, currentListId, nextSortOrder)
     changeItemEntry("")
   }
 
   async function moveItem(itemId: string, targetItemId: string) {
-    if (!currentListId || !editorUid || itemId === targetItemId) {
+    if (!currentListId || !userId || itemId === targetItemId) {
       return
     }
 
@@ -138,7 +71,7 @@ export function useItemsConcern(user: User | null, currentListId: string) {
 
     const didPersist = await dbReorderItems(
       currentListId,
-      editorUid,
+      userId,
       reorderedItems.map(item => ({
         id: item.id,
         sortOrder: item.sortOrder ?? generateSequentialSortOrder(0)
@@ -151,17 +84,17 @@ export function useItemsConcern(user: User | null, currentListId: string) {
   }
 
   async function toggleHighlight(item: ShoppingItem) {
-    await dbChangeItemsHighlight(!item.itemHighlighted, editorUid, currentListId, [item.id])
+    await dbChangeItemsHighlight(!item.itemHighlighted, userId, currentListId, [item.id])
   }
 
   async function deleteItem(itemId: string) {
-    await dbDeleteItems(currentListId, editorUid, [itemId])
+    await dbDeleteItems(currentListId, userId, [itemId])
   }
 
   async function markAllItems(nextValue: boolean) {
     const itemIdsToChangeMark = items.filter(item => item.itemHighlighted !== nextValue).map(item => item.id)
 
-    await dbChangeItemsHighlight(nextValue, editorUid, currentListId, itemIdsToChangeMark)
+    await dbChangeItemsHighlight(nextValue, userId, currentListId, itemIdsToChangeMark)
   }
 
   async function deleteMarkedItems() {
@@ -171,7 +104,7 @@ export function useItemsConcern(user: User | null, currentListId: string) {
 
     const markedItemIds = items.filter(item => item.itemHighlighted).map(item => item.id)
 
-    await dbDeleteItems(currentListId, editorUid, markedItemIds)
+    await dbDeleteItems(currentListId, userId, markedItemIds)
   }
 
   async function deleteAllItems() {
@@ -181,7 +114,7 @@ export function useItemsConcern(user: User | null, currentListId: string) {
 
     const allItemIds = items.map(item => item.id)
 
-    await dbDeleteItems(currentListId, editorUid, allItemIds)
+    await dbDeleteItems(currentListId, userId, allItemIds)
   }
 
   function startEditItem(item: ShoppingItem) {
@@ -190,7 +123,7 @@ export function useItemsConcern(user: User | null, currentListId: string) {
   }
 
   async function saveEditedItem() {
-    await dbSaveEditedItem(currentListId, editingItemId, editingItemText, editorUid)
+    await dbSaveEditedItem(currentListId, editingItemId, editingItemText, userId)
 
     setEditingItemId("")
     setEditingItemText("")

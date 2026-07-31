@@ -1,6 +1,7 @@
-import { push, ref, update } from "firebase/database"
+import { DataSnapshot, get, onValue, push, ref, remove, runTransaction, update } from "firebase/database"
 import { database } from "./config"
 import { trimAndCollapseSpaces } from "@/shared/utils/text"
+import { ShoppingItem } from "@/shared/types/shopping"
 
 function printError(error: unknown, message = "Error:") {
   if (error instanceof Error) {
@@ -14,6 +15,30 @@ function printError(error: unknown, message = "Error:") {
 
 function getTimestamp() {
   return Date.now()
+}
+
+function getPathSnapshot(path: string) {
+  if (!database || !path) {
+    return null
+  }
+
+  return get(ref(database, path))
+}
+
+function subscribeToPath(path: string, callback: (snapshot: DataSnapshot) => void, onError?: (error: Error) => void) {
+  if (!database || !path) {
+    return null
+  }
+
+  return onValue(ref(database, path), callback, onError)
+}
+
+function runTransactionAtPath(path: string, transactionUpdate: Parameters<typeof runTransaction>[1]) {
+  if (!database || !path) {
+    return Promise.resolve(null)
+  }
+
+  return runTransaction(ref(database, path), transactionUpdate)
 }
 
 export function generateSequentialSortOrder(index: number) {
@@ -57,6 +82,210 @@ function generateFractionalIndex(beforeSortOrder: string | null, afterSortOrder:
   }
 
   return `${beforeSortOrder}0`
+}
+
+export async function dbUpdateValues(updates: Record<string, unknown>) {
+  if (!database) {
+    return
+  }
+
+  await update(ref(database), updates)
+}
+
+export async function dbGetUserCurrentListId(userId: string) {
+  const snapshot = await getPathSnapshot(`users/${userId}/currentListId`)
+  if (!snapshot || !snapshot.exists()) {
+    return ""
+  }
+
+  const currentListIdValue = snapshot.val()
+  return typeof currentListIdValue === "string" ? currentListIdValue : ""
+}
+
+export function dbSubscribeToUserListIds(userId: string, callback: (snapshot: DataSnapshot) => void, onError?: (error: Error) => void) {
+  return subscribeToPath(`users/${userId}/lists`, callback, onError)
+}
+
+export async function dbGetListById(listId: string) {
+  return getPathSnapshot(`lists/${listId}`)
+}
+
+export function dbSubscribeToListById(listId: string, callback: (snapshot: DataSnapshot) => void, onError?: (error: Error) => void) {
+  return subscribeToPath(`lists/${listId}`, callback, onError)
+}
+
+export async function dbSetUserCurrentListId(userId: string, listId: string | null) {
+  if (!database || !userId) {
+    return
+  }
+
+  try {
+    await update(ref(database), {
+      [`users/${userId}/currentListId`]: listId
+    })
+  } catch (error) {
+    printError(error, "Failed to set user current list: ")
+  }
+}
+
+export async function dbAddUserListReference(userId: string, listId: string) {
+  if (!database || !userId || !listId) {
+    return
+  }
+
+  try {
+    await update(ref(database), {
+      [`users/${userId}/lists/${listId}`]: true
+    })
+  } catch (error) {
+    printError(error, "Failed to add user list reference: ")
+    throw error
+  }
+}
+
+export async function dbClearUserListMembership(userId: string, listId: string) {
+  if (!database || !userId || !listId) {
+    return
+  }
+
+  try {
+    await update(ref(database), {
+      [`users/${userId}/lists/${listId}`]: null
+    })
+  } catch (error) {
+    printError(error, "Failed to clear user list membership: ")
+  }
+}
+
+export async function dbDeleteListById(listId: string) {
+  if (!database || !listId) {
+    return
+  }
+
+  try {
+    await update(ref(database), {
+      [`lists/${listId}`]: null
+    })
+  } catch (error) {
+    printError(error, "Failed to delete list: ")
+  }
+}
+
+export async function dbReserveListRecord(listId: string, listRecord: Record<string, unknown>) {
+  const reservationResult = await runTransactionAtPath(`lists/${listId}`, currentValue => {
+    if (currentValue !== null) {
+      return
+    }
+
+    return listRecord
+  })
+
+  return Boolean(reservationResult?.committed)
+}
+
+export async function dbSetListMemberUsername(listId: string, userId: string, username: string) {
+  if (!database || !listId || !userId || !username) {
+    return
+  }
+
+  try {
+    await update(ref(database), {
+      [`lists/${listId}/memberProfiles/${userId}/username`]: username
+    })
+  } catch (error) {
+    printError(error, "Failed to set list member username: ")
+  }
+}
+
+export async function dbClearListMemberUsername(listId: string, userId: string) {
+  if (!database || !listId || !userId) {
+    return
+  }
+
+  try {
+    await update(ref(database), {
+      [`lists/${listId}/memberProfiles/${userId}`]: null
+    })
+  } catch (error) {
+    printError(error, "Failed to clear list member username: ")
+  }
+}
+
+export async function dbBackfillListFields(listId: string, updates: Record<string, string | null>) {
+  if (!database || !listId) {
+    return
+  }
+
+  const scopedUpdates = Object.entries(updates).reduce<Record<string, unknown>>((nextUpdates, [key, value]) => {
+    nextUpdates[`lists/${listId}/${key}`] = value
+    return nextUpdates
+  }, {})
+
+  try {
+    await update(ref(database), scopedUpdates)
+  } catch (error) {
+    printError(error, "Failed to backfill list fields: ")
+  }
+}
+
+export async function dbGetUsernameClaim(usernameKey: string) {
+  return getPathSnapshot(`usernames/${usernameKey}`)
+}
+
+export async function dbClaimUsername(usernameKey: string, userId: string) {
+  const claimResult = await runTransactionAtPath(`usernames/${usernameKey}`, currentValue => {
+    if (currentValue === null || currentValue === userId) {
+      return userId
+    }
+
+    return
+  })
+
+  return Boolean(claimResult?.committed)
+}
+
+export async function dbReleaseUsername(usernameKey: string, userId: string) {
+  const releaseResult = await runTransactionAtPath(`usernames/${usernameKey}`, currentValue => {
+    if (currentValue === userId) {
+      return null
+    }
+
+    return currentValue
+  })
+
+  if (releaseResult?.committed && releaseResult.snapshot.val() === null) {
+    if (!database) {
+      return
+    }
+
+    try {
+      await remove(ref(database, `usernames/${usernameKey}`))
+    } catch (error) {
+      printError(error, "Failed to release username: ")
+    }
+  }
+}
+
+export function dbSubscribeToUserProfile(userId: string, callback: (snapshot: DataSnapshot) => void, onError?: (error: Error) => void) {
+  return subscribeToPath(`users/${userId}`, callback, onError)
+}
+
+export async function dbUpdateUserProfile(userId: string, updates: Record<string, unknown>) {
+  if (!database || !userId) {
+    return
+  }
+
+  const scopedUpdates = Object.entries(updates).reduce<Record<string, unknown>>((nextUpdates, [key, value]) => {
+    nextUpdates[`users/${userId}/${key}`] = value
+    return nextUpdates
+  }, {})
+
+  try {
+    await update(ref(database), scopedUpdates)
+  } catch (error) {
+    printError(error, "Failed to update user profile: ")
+    throw error
+  }
 }
 
 export async function dbSaveEditedItem(listId: string, itemId: string, newItemName: string, userId: string) {
@@ -309,4 +538,69 @@ export async function dbLeaveList(listId: string, userId: string, memberUserIds:
   } catch (error) {
     printError(error, "Failed to leave list:")
   }
+}
+
+export function dbSubscribeToListItems(listId: string, userId: string, callback: (items: ShoppingItem[]) => void) {
+  if (!database || !userId || !listId) {
+    return null
+  }
+
+  const listItemsRef = ref(database, `lists/${listId}/items`)
+  return onValue(listItemsRef, snapshot => {
+    const nextItems = readItemsFromSnapshot(snapshot)
+    callback(nextItems)
+  })
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value)
+}
+
+function toShoppingItem(id: string, value: unknown, fallbackOrder: string): ShoppingItem | null {
+  if (!isRecord(value)) return null
+
+  const itemName = value.itemName
+  if (typeof itemName !== "string") return null
+
+  const sortOrder =
+    typeof value.sortOrder === "string"
+      ? value.sortOrder
+      : typeof value.createdAt === "number"
+        ? `${value.createdAt}`
+        : typeof value.updatedAt === "number"
+          ? `${value.updatedAt}`
+          : fallbackOrder
+
+  return {
+    id,
+    itemName,
+    itemHighlighted: typeof value.itemHighlighted === "boolean" ? value.itemHighlighted : false,
+    lastEditedByUid: typeof value.lastEditedByUid === "string" ? value.lastEditedByUid : "",
+    createdAt: typeof value.createdAt === "number" ? value.createdAt : undefined,
+    updatedAt: typeof value.updatedAt === "number" ? value.updatedAt : undefined,
+    sortOrder
+  }
+}
+
+function readItemsFromSnapshot(snapshot: DataSnapshot): ShoppingItem[] {
+  const rawData = snapshot.val()
+
+  if (!isRecord(rawData)) return []
+
+  const nextItems: ShoppingItem[] = []
+
+  for (const [id, value] of Object.entries(rawData)) {
+    const parsed = toShoppingItem(id, value, nextItems.length.toString())
+
+    if (parsed) {
+      nextItems.push(parsed)
+    }
+  }
+
+  return nextItems.sort((left, right) => {
+    const leftOrder = left.sortOrder ?? ""
+    const rightOrder = right.sortOrder ?? ""
+
+    return leftOrder.localeCompare(rightOrder)
+  })
 }

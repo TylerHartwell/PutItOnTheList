@@ -1,11 +1,10 @@
-import { type User } from "firebase/auth"
 import { useItemsConcern } from "./useItemsConcern"
 import { useUserLists } from "./useUserLists"
 import { useSettingsConcern } from "./useSettingsConcern"
 
-export function useShoppingList(user: User | null, activeUsername: string) {
-  const userLists = useUserLists(user, activeUsername)
-  const items = useItemsConcern(user, userLists.currentListId)
+export function useShoppingList(userId: string, activeUsername: string) {
+  const userLists = useUserLists(userId, activeUsername)
+  const items = useItemsConcern(userId, userLists.currentListId)
   const settings = useSettingsConcern({
     userLists
   })

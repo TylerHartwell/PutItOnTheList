@@ -2,12 +2,16 @@
 
 import { useEffect, useState } from "react"
 import { updateProfile, type User } from "firebase/auth"
-import { get, onValue, ref, remove, runTransaction, update } from "firebase/database"
 import { database } from "@/shared/lib/firebase/config"
+import {
+  dbClaimUsername,
+  dbGetUsernameClaim,
+  dbReleaseUsername,
+  dbSubscribeToUserProfile,
+  dbUpdateUserProfile
+} from "@/shared/lib/firebase/functions"
 import type { UserAccountState, UserProfileRecord } from "@/shared/types/user"
 
-const USERS_ROOT = "users"
-const USERNAMES_ROOT = "usernames"
 const USERNAME_PATTERN = /^[a-z0-9_]{6,18}$/
 
 function canonicalizeUsername(username: string) {
@@ -116,10 +120,6 @@ export function useUserProfile(user: User | null): UserAccountState {
       }
     })
 
-    const db = database
-
-    const profileRef = ref(db, `${USERS_ROOT}/${user.uid}`)
-
     const resolveUsernameSetupRequirement = async (nextProfile: UserProfileRecord) => {
       const normalizedUsername = canonicalizeUsername(nextProfile.username)
       const normalizedEmail = canonicalizeUsername(nextProfile.email)
@@ -133,14 +133,13 @@ export function useUserProfile(user: User | null): UserAccountState {
       }
 
       try {
-        const usernameRef = ref(db, `${USERNAMES_ROOT}/${usernameToKey(normalizedUsername)}`)
-        const usernameClaimSnapshot = await get(usernameRef)
+        const usernameClaimSnapshot = await dbGetUsernameClaim(usernameToKey(normalizedUsername))
 
         if (isCancelled) {
           return
         }
 
-        const hasUniqueUsername = usernameClaimSnapshot.exists() && usernameClaimSnapshot.val() === user.uid
+        const hasUniqueUsername = Boolean(usernameClaimSnapshot?.exists() && usernameClaimSnapshot.val() === user.uid)
         setRequiresUsernameSetup(!hasUniqueUsername)
       } catch {
         if (isCancelled) {
@@ -155,8 +154,8 @@ export function useUserProfile(user: User | null): UserAccountState {
       }
     }
 
-    const unsubscribe = onValue(
-      profileRef,
+    const unsubscribe = dbSubscribeToUserProfile(
+      user.uid,
       snapshot => {
         if (isCancelled) {
           return
@@ -190,7 +189,7 @@ export function useUserProfile(user: User | null): UserAccountState {
           }
 
           if (Object.keys(nextProfileUpdate).length > 0) {
-            void update(profileRef, {
+            void dbUpdateUserProfile(user.uid, {
               ...nextProfileUpdate,
               updatedAt: nextProfile.updatedAt
             })
@@ -212,7 +211,7 @@ export function useUserProfile(user: User | null): UserAccountState {
 
     return () => {
       isCancelled = true
-      unsubscribe()
+      unsubscribe?.()
     }
   }, [user])
 
@@ -226,8 +225,6 @@ export function useUserProfile(user: User | null): UserAccountState {
       setErrorMessage(getDatabaseUnavailableError())
       return
     }
-
-    const db = database
 
     const typedUsername = usernameInput.trim()
     const resolvedUsername = canonicalizeUsername(typedUsername)
@@ -248,23 +245,15 @@ export function useUserProfile(user: User | null): UserAccountState {
     setIsSavingUsername(true)
 
     try {
-      const nextUsernameRef = ref(db, `${USERNAMES_ROOT}/${nextUsernameKey}`)
-      const usernameClaimResult = await runTransaction(nextUsernameRef, currentValue => {
-        if (currentValue === null || currentValue === user.uid) {
-          return user.uid
-        }
+      const didClaimUsername = await dbClaimUsername(nextUsernameKey, user.uid)
 
-        return
-      })
-
-      if (!usernameClaimResult.committed) {
+      if (!didClaimUsername) {
         setErrorMessage("That username is already taken.")
         return
       }
 
-      const profileRef = ref(db, `${USERS_ROOT}/${user.uid}`)
       try {
-        await update(profileRef, {
+        await dbUpdateUserProfile(user.uid, {
           uid: user.uid,
           email: user.email ?? profile?.email ?? "",
           username: resolvedUsername,
@@ -274,17 +263,7 @@ export function useUserProfile(user: User | null): UserAccountState {
       } catch (error) {
         // Release newly claimed username if profile persistence fails.
         try {
-          const releaseClaimResult = await runTransaction(nextUsernameRef, currentValue => {
-            if (currentValue === user.uid) {
-              return null
-            }
-
-            return currentValue
-          })
-
-          if (releaseClaimResult.committed && releaseClaimResult.snapshot.val() === null) {
-            await remove(nextUsernameRef)
-          }
+          await dbReleaseUsername(nextUsernameKey, user.uid)
         } catch {
           // Keep original failure as the surfaced error.
         }
@@ -300,18 +279,7 @@ export function useUserProfile(user: User | null): UserAccountState {
       setUsernameInput(resolvedUsername)
 
       if (previousUsernameKey && previousUsernameKey !== nextUsernameKey) {
-        const previousUsernameRef = ref(db, `${USERNAMES_ROOT}/${previousUsernameKey}`)
-        const releaseResult = await runTransaction(previousUsernameRef, currentValue => {
-          if (currentValue === user.uid) {
-            return null
-          }
-
-          return currentValue
-        })
-
-        if (releaseResult.committed && releaseResult.snapshot.val() === null) {
-          await remove(previousUsernameRef)
-        }
+        await dbReleaseUsername(previousUsernameKey, user.uid)
       }
 
       setProfile(currentProfile =>

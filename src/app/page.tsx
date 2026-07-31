@@ -12,8 +12,9 @@ import { useAuthContextValue } from "@/shared/lib/bundleContext"
 
 function ShoppingListContent() {
   const { user, account } = useAuthContextValue()
-  const activeUsername = account.profile?.username || user?.uid || ""
-  const { lists, items: itemsState, settings } = useShoppingList(user, activeUsername)
+  const userId = user?.uid || ""
+  const activeUsername = account.profile?.username || userId
+  const { lists, items: itemsState, settings } = useShoppingList(userId, activeUsername)
 
   if (lists.isLoading) {
     return <div className="text-center py-8">Loading lists...</div>
