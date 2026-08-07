@@ -1,22 +1,8 @@
-import { ShoppingItem } from "@/shared/types/shopping"
 import { cn } from "@/shared/lib/cn"
 import { vibrate } from "@/shared/utils/vibrate"
 import { useSortable } from "@dnd-kit/react/sortable"
 import { Check, GripVertical, X } from "lucide-react"
-import { RefObject } from "react"
-
-type SortableItemRowProps = {
-  item: ShoppingItem
-  index: number
-  editingItemId: string | null
-  editingItemText: string
-  editInputRef: RefObject<HTMLInputElement | null>
-  onDeleteItem: (itemId: string) => void
-  onStartEditItem: (item: ShoppingItem) => void
-  onEditingItemTextChange: (value: string) => void
-  onSaveEditedItem: () => void
-  onToggleHighlight: (item: ShoppingItem) => void
-}
+import type { SortableItemRowProps } from "../types"
 
 export function SortableItemRow({
   item,

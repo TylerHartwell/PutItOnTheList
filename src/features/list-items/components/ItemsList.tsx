@@ -1,22 +1,8 @@
-import { type RefObject } from "react"
 import { DragDropProvider, type DragEndEvent } from "@dnd-kit/react"
 import { isSortable } from "@dnd-kit/react/sortable"
-import type { ShoppingItem } from "@/shared/types/shopping"
 import { vibrate } from "@/shared/utils/vibrate"
 import { SortableItemRow } from "./SortableItemRow"
-
-type ItemsListProps = {
-  items: ShoppingItem[]
-  editingItemId: string | null
-  editingItemText: string
-  editInputRef: RefObject<HTMLInputElement | null>
-  onDeleteItem: (itemId: string) => void
-  onStartEditItem: (item: ShoppingItem) => void
-  onEditingItemTextChange: (value: string) => void
-  onSaveEditedItem: () => void
-  onToggleHighlight: (item: ShoppingItem) => void
-  onMoveItem: (itemId: string, targetItemId: string) => void
-}
+import type { ItemsListProps } from "../types"
 
 export function ItemsList({
   items,
