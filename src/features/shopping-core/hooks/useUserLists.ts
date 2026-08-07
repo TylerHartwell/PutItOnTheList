@@ -26,7 +26,8 @@ export function useUserLists(userId: string, activeUsername: string) {
   const hasResolvedInitialCurrentListRef = useRef(false)
 
   const isCurrentUserOwner = Boolean(userId === currentListOwnerUid)
-  const currentListLastEditedByUsername = currentListMembers.find(member => member.uid === currentListOwnerUid)?.username || "Unknown"
+  const currentListLastEditedByUid = storedLists.find(list => list.listId === currentListId)?.lastEditedByUid || ""
+  const currentListLastEditedByUsername = currentListMembers.find(member => member.uid === currentListLastEditedByUid)?.username || "Unknown"
 
   const { createList, ensureDefaultList } = useListCreation({
     userId,
