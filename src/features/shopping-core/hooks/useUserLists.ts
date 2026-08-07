@@ -92,19 +92,31 @@ export function useUserLists(userId: string, activeUsername: string) {
     setCurrentListId(listId)
   }
 
+  function getNextListIdAfterLeave(listIdToLeave: string) {
+    return storedLists.find(list => list.listId !== listIdToLeave)?.listId ?? ""
+  }
+
+  async function updateSelectionAfterLeave(listIdToLeave: string) {
+    if (currentListId !== listIdToLeave) {
+      return
+    }
+
+    const nextListId = getNextListIdAfterLeave(listIdToLeave)
+
+    if (nextListId) {
+      setCurrentListId(nextListId)
+      return
+    }
+
+    await createList("")
+  }
+
   async function leaveList(listIdToLeave: string) {
     const memberUserIds = currentListMembers.map(member => member.uid)
 
-    await dbLeaveList(currentListId, userId, memberUserIds, currentListOwnerUid)
+    await dbLeaveList(listIdToLeave, userId, memberUserIds, currentListOwnerUid)
 
-    if (currentListId === listIdToLeave) {
-      const remainingLists = storedLists.filter(list => list.listId !== listIdToLeave)
-      if (remainingLists.length > 0) {
-        setCurrentListId(remainingLists[0].listId)
-      } else {
-        await createList("")
-      }
-    }
+    await updateSelectionAfterLeave(listIdToLeave)
   }
 
   async function renameList(listId: string, newName: string) {

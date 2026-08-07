@@ -84,14 +84,6 @@ function generateFractionalIndex(beforeSortOrder: string | null, afterSortOrder:
   return `${beforeSortOrder}0`
 }
 
-export async function dbUpdateValues(updates: Record<string, unknown>) {
-  if (!database) {
-    return
-  }
-
-  await update(ref(database), updates)
-}
-
 export async function dbGetUserCurrentListId(userId: string) {
   const snapshot = await getPathSnapshot(`users/${userId}/currentListId`)
   if (!snapshot || !snapshot.exists()) {
@@ -194,37 +186,6 @@ export async function dbSetListMemberUsername(listId: string, userId: string, us
     })
   } catch (error) {
     printError(error, "Failed to set list member username: ")
-  }
-}
-
-export async function dbClearListMemberUsername(listId: string, userId: string) {
-  if (!database || !listId || !userId) {
-    return
-  }
-
-  try {
-    await update(ref(database), {
-      [`lists/${listId}/memberProfiles/${userId}`]: null
-    })
-  } catch (error) {
-    printError(error, "Failed to clear list member username: ")
-  }
-}
-
-export async function dbBackfillListFields(listId: string, updates: Record<string, string | null>) {
-  if (!database || !listId) {
-    return
-  }
-
-  const scopedUpdates = Object.entries(updates).reduce<Record<string, unknown>>((nextUpdates, [key, value]) => {
-    nextUpdates[`lists/${listId}/${key}`] = value
-    return nextUpdates
-  }, {})
-
-  try {
-    await update(ref(database), scopedUpdates)
-  } catch (error) {
-    printError(error, "Failed to backfill list fields: ")
   }
 }
 
