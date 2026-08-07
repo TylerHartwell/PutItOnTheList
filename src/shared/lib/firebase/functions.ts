@@ -17,6 +17,13 @@ function getTimestamp() {
   return Date.now()
 }
 
+function createListAuditUpdates(listId: string, userId: string, now = getTimestamp()): Record<string, unknown> {
+  return {
+    [`lists/${listId}/lastEditedByUid`]: userId,
+    [`lists/${listId}/updatedAt`]: now
+  }
+}
+
 function getPathSnapshot(path: string) {
   if (!database || !path) {
     return null
@@ -258,10 +265,7 @@ export async function dbSaveEditedItem(listId: string, itemId: string, newItemNa
 
   const now = getTimestamp()
 
-  const updates: Record<string, unknown> = {
-    [`lists/${listId}/lastEditedByUid`]: userId,
-    [`lists/${listId}/updatedAt`]: now
-  }
+  const updates: Record<string, unknown> = createListAuditUpdates(listId, userId, now)
 
   if (trimmedName) {
     updates[`lists/${listId}/items/${itemId}/itemName`] = trimmedName
@@ -285,10 +289,7 @@ export async function dbDeleteItems(listId: string, userId: string, itemIds: str
 
   const now = getTimestamp()
 
-  const updates: Record<string, unknown> = {
-    [`lists/${listId}/lastEditedByUid`]: userId,
-    [`lists/${listId}/updatedAt`]: now
-  }
+  const updates: Record<string, unknown> = createListAuditUpdates(listId, userId, now)
 
   for (const itemId of itemIds) {
     updates[`lists/${listId}/items/${itemId}`] = null
@@ -308,10 +309,7 @@ export async function dbChangeItemsHighlight(nextValue: boolean, userId: string,
 
   const now = getTimestamp()
 
-  const updates: Record<string, unknown> = {
-    [`lists/${listId}/lastEditedByUid`]: userId,
-    [`lists/${listId}/updatedAt`]: now
-  }
+  const updates: Record<string, unknown> = createListAuditUpdates(listId, userId, now)
 
   for (const itemId of itemIds) {
     updates[`lists/${listId}/items/${itemId}/itemHighlighted`] = nextValue
@@ -333,10 +331,7 @@ export async function dbReorderItems(listId: string, userId: string, itemOrder: 
 
   const now = getTimestamp()
 
-  const updates: Record<string, unknown> = {
-    [`lists/${listId}/lastEditedByUid`]: userId,
-    [`lists/${listId}/updatedAt`]: now
-  }
+  const updates: Record<string, unknown> = createListAuditUpdates(listId, userId, now)
 
   for (const item of itemOrder) {
     updates[`lists/${listId}/items/${item.id}/sortOrder`] = item.sortOrder
@@ -374,8 +369,7 @@ export async function dbAddItem(itemEntry: string, userId: string, listId: strin
       updatedAt: now,
       sortOrder: sortOrder ?? generateFractionalIndex(null, null)
     },
-    [`lists/${listId}/lastEditedByUid`]: userId,
-    [`lists/${listId}/updatedAt`]: now
+    ...createListAuditUpdates(listId, userId, now)
   }
 
   try {
@@ -437,8 +431,7 @@ export async function dbRenameList(listId: string, userId: string, newName: stri
 
   const updates: Record<string, unknown> = {
     [`lists/${listId}/listName`]: trimmedName,
-    [`lists/${listId}/lastEditedByUid`]: userId,
-    [`lists/${listId}/updatedAt`]: getTimestamp()
+    ...createListAuditUpdates(listId, userId)
   }
 
   try {

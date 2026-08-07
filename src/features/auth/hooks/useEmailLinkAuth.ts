@@ -18,19 +18,8 @@ import {
 import { firebaseAuth } from "@/shared/lib/firebase/config"
 import { useUserProfile } from "./useUserProfile"
 import { AUTH_UNAVAILABLE_MESSAGE, PENDING_EMAIL_KEY } from "./useEmailLinkAuth.constants"
-import { getFriendlyError } from "./useEmailLinkAuth.errors"
+import { getErrorCode, getFriendlyError } from "./useEmailLinkAuth.errors"
 import { clearFirebaseAuthQueryParamsFromCurrentUrl, parseEmailHintFromUrl, resolveEmailSignInLink } from "./useEmailLinkAuth.linkUtils"
-
-function getErrorCode(error: unknown) {
-  if (typeof error === "object" && error !== null && "code" in error) {
-    const code = (error as { code?: unknown }).code
-    if (typeof code === "string") {
-      return code
-    }
-  }
-
-  return ""
-}
 
 export function useEmailLinkAuth() {
   const [user, setUser] = useState<User | null>(null)
