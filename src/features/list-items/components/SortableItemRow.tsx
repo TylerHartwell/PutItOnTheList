@@ -1,13 +1,13 @@
 import { ShoppingItem } from "@/shared/types/shopping"
 import { cn } from "@/shared/lib/cn"
 import { vibrate } from "@/shared/utils/vibrate"
-import { useSortable } from "@dnd-kit/sortable"
+import { useSortable } from "@dnd-kit/react/sortable"
 import { Check, GripVertical, X } from "lucide-react"
 import { RefObject } from "react"
-import { CSS } from "@dnd-kit/utilities"
 
 type SortableItemRowProps = {
   item: ShoppingItem
+  index: number
   editingItemId: string | null
   editingItemText: string
   editInputRef: RefObject<HTMLInputElement | null>
@@ -20,6 +20,7 @@ type SortableItemRowProps = {
 
 export function SortableItemRow({
   item,
+  index,
   editingItemId,
   editingItemText,
   editInputRef,
@@ -29,7 +30,7 @@ export function SortableItemRow({
   onSaveEditedItem,
   onToggleHighlight
 }: SortableItemRowProps) {
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging: isActive } = useSortable({ id: item.id })
+  const { ref, handleRef, isDragging: isActive } = useSortable({ id: item.id, index })
 
   function handleToggleHighlight() {
     onToggleHighlight(item)
@@ -53,7 +54,7 @@ export function SortableItemRow({
 
   return (
     <li
-      ref={setNodeRef}
+      ref={ref}
       data-item-id={item.id}
       className={cn(
         "flex items-center justify-start rounded-md border-2 border-transparent py-0 shadow-[0_1px_4px_rgba(0,0,0,0.2)] hover:shadow-[0_0_7px_rgba(0,0,0,0.8)]",
@@ -61,8 +62,6 @@ export function SortableItemRow({
         isActive && "scale-[1.02] shadow-[0_15px_15px_rgba(34,33,81,0.25)]"
       )}
       style={{
-        transform: CSS.Transform.toString(transform),
-        transition,
         touchAction: isActive ? "none" : "pan-y",
         zIndex: isActive ? 20 : undefined
       }}
@@ -112,10 +111,9 @@ export function SortableItemRow({
 
       <button
         type="button"
+        ref={handleRef}
         className="touch-none cursor-grab bg-transparent p-2 text-center font-black leading-none text-[#fc7371] active:scale-130"
         aria-label={`Reorder ${item.itemName}`}
-        {...attributes}
-        {...listeners}
       >
         <GripVertical className="h-5 w-5" strokeWidth={2.5} />
       </button>

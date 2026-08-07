@@ -1,6 +1,6 @@
 import { type RefObject } from "react"
-import { closestCenter, DndContext, PointerSensor, type DragEndEvent, useSensor, useSensors } from "@dnd-kit/core"
-import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable"
+import { DragDropProvider, type DragEndEvent } from "@dnd-kit/react"
+import { isSortable } from "@dnd-kit/react/sortable"
 import type { ShoppingItem } from "@/shared/types/shopping"
 import { vibrate } from "@/shared/utils/vibrate"
 import { SortableItemRow } from "./SortableItemRow"
@@ -30,22 +30,28 @@ export function ItemsList({
   onToggleHighlight,
   onMoveItem
 }: ItemsListProps) {
-  const sensors = useSensors(
-    useSensor(PointerSensor, {
-      activationConstraint: {
-        distance: 1
-      }
-    })
-  )
-
   function handleDragEnd(event: DragEndEvent) {
-    const { active, over } = event
+    const { operation, canceled } = event
+    const { source } = operation
 
-    if (!over || active.id === over.id) {
+    if (canceled || !isSortable(source)) {
       return
     }
 
-    onMoveItem(String(active.id), String(over.id))
+    const { initialIndex, index } = source
+
+    if (typeof initialIndex !== "number" || typeof index !== "number" || initialIndex === index) {
+      return
+    }
+
+    const sourceItem = items[initialIndex]
+    const targetItem = items[index]
+
+    if (!sourceItem || !targetItem || sourceItem.id === targetItem.id) {
+      return
+    }
+
+    onMoveItem(sourceItem.id, targetItem.id)
     vibrate()
   }
 
@@ -54,25 +60,24 @@ export function ItemsList({
   }
 
   return (
-    <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-      <SortableContext items={items.map(item => item.id)} strategy={verticalListSortingStrategy}>
-        <ul className="my-2.5 flex list-none flex-col gap-2 p-0" data-list-root>
-          {items.map(item => (
-            <SortableItemRow
-              key={item.id}
-              item={item}
-              editingItemId={editingItemId}
-              editingItemText={editingItemText}
-              editInputRef={editInputRef}
-              onDeleteItem={onDeleteItem}
-              onStartEditItem={onStartEditItem}
-              onEditingItemTextChange={onEditingItemTextChange}
-              onSaveEditedItem={onSaveEditedItem}
-              onToggleHighlight={onToggleHighlight}
-            />
-          ))}
-        </ul>
-      </SortableContext>
-    </DndContext>
+    <DragDropProvider onDragEnd={handleDragEnd}>
+      <ul className="my-2.5 flex list-none flex-col gap-2 p-0" data-list-root>
+        {items.map((item, index) => (
+          <SortableItemRow
+            key={item.id}
+            item={item}
+            index={index}
+            editingItemId={editingItemId}
+            editingItemText={editingItemText}
+            editInputRef={editInputRef}
+            onDeleteItem={onDeleteItem}
+            onStartEditItem={onStartEditItem}
+            onEditingItemTextChange={onEditingItemTextChange}
+            onSaveEditedItem={onSaveEditedItem}
+            onToggleHighlight={onToggleHighlight}
+          />
+        ))}
+      </ul>
+    </DragDropProvider>
   )
 }
