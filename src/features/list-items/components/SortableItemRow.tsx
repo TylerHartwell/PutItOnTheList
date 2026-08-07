@@ -1,4 +1,5 @@
 import { ShoppingItem } from "@/shared/types/shopping"
+import { cn } from "@/shared/lib/cn"
 import { vibrate } from "@/shared/utils/vibrate"
 import { useSortable } from "@dnd-kit/sortable"
 import { Check, GripVertical, X } from "lucide-react"
@@ -54,9 +55,11 @@ export function SortableItemRow({
     <li
       ref={setNodeRef}
       data-item-id={item.id}
-      className={`flex items-center justify-start rounded-md border-2 border-transparent py-0 shadow-[0_1px_4px_rgba(0,0,0,0.2)] hover:shadow-[0_0_7px_rgba(0,0,0,0.8)] ${
-        item.itemHighlighted ? "bg-[#fffdc1]" : "bg-[#fffdf8]"
-      } ${isActive ? "scale-[1.02] bg-[rgba(255,255,255,0.9)] shadow-[0_15px_15px_rgba(34,33,81,0.25)]" : ""}`}
+      className={cn(
+        "flex items-center justify-start rounded-md border-2 border-transparent py-0 shadow-[0_1px_4px_rgba(0,0,0,0.2)] hover:shadow-[0_0_7px_rgba(0,0,0,0.8)]",
+        item.itemHighlighted ? "bg-[#fffdc1]" : "bg-[#fffdf8]",
+        isActive && "scale-[1.02] shadow-[0_15px_15px_rgba(34,33,81,0.25)]"
+      )}
       style={{
         transform: CSS.Transform.toString(transform),
         transition,
