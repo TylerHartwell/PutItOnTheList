@@ -98,7 +98,10 @@ export function SortableItemRow({
       <button
         type="button"
         ref={handleRef}
-        className="touch-none cursor-grab bg-transparent p-2 text-center font-black leading-none text-[#fc7371] active:scale-130"
+        className={cn(
+          "cursor-grab bg-transparent p-2 text-center font-black leading-none text-[#fc7371] active:scale-130",
+          isActive ? "touch-none" : "touch-pan-y"
+        )}
         aria-label={`Reorder ${item.itemName}`}
       >
         <GripVertical className="h-5 w-5" strokeWidth={2.5} />
