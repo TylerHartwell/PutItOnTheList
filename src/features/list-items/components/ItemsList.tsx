@@ -1,4 +1,5 @@
 import { DragDropProvider, KeyboardSensor, PointerSensor, type DragEndEvent } from "@dnd-kit/react"
+import { PointerActivationConstraints } from "@dnd-kit/dom"
 import { isSortable } from "@dnd-kit/react/sortable"
 import { vibrate } from "@/shared/utils/vibrate"
 import { SortableItemRow } from "./SortableItemRow"
@@ -8,7 +9,7 @@ const dragSensors = [
   PointerSensor.configure({
     activationConstraints(event, source) {
       if (event.pointerType === "touch") {
-        return undefined
+        return [new PointerActivationConstraints.Delay({ value: 100, tolerance: 5 })]
       }
 
       const defaultActivationConstraints = PointerSensor.defaults.activationConstraints
