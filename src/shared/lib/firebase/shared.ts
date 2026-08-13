@@ -1,4 +1,4 @@
-import { DataSnapshot, get, onValue, push, ref, runTransaction } from "firebase/database"
+import { DataSnapshot, get, onValue, ref, runTransaction } from "firebase/database"
 import { database } from "./config"
 import { trimAndCollapseSpaces } from "@/shared/utils/text"
 import { ShoppingItem } from "@/shared/types/shopping"
@@ -52,7 +52,7 @@ export function generateSequentialSortOrder(index: number) {
   return String(index).padStart(6, "0")
 }
 
-export function generateFractionalIndex(beforeSortOrder: string | null, afterSortOrder: string | null) {
+function generateFractionalIndex(beforeSortOrder: string | null, afterSortOrder: string | null) {
   if (!beforeSortOrder && !afterSortOrder) {
     return "a0"
   }
@@ -102,11 +102,11 @@ export function createItemRecord(itemName: string, userId: string, now: number, 
   }
 }
 
-export function isRecord(value: unknown): value is Record<string, unknown> {
+function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value)
 }
 
-export function toShoppingItem(id: string, value: unknown, fallbackOrder: string): ShoppingItem | null {
+function toShoppingItem(id: string, value: unknown, fallbackOrder: string): ShoppingItem | null {
   if (!isRecord(value)) return null
 
   const itemName = value.itemName
@@ -153,14 +153,6 @@ export function readItemsFromSnapshot(snapshot: DataSnapshot): ShoppingItem[] {
 
     return leftOrder.localeCompare(rightOrder)
   })
-}
-
-export function getNewItemId() {
-  if (!database) {
-    return null
-  }
-
-  return push(ref(database, "temp"))
 }
 
 export function trimAndCollapseItemName(value: string) {

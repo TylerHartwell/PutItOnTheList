@@ -39,20 +39,6 @@ export async function dbSetUserCurrentListId(userId: string, listId: string | nu
   }
 }
 
-export async function dbSetListMemberUsername(listId: string, userId: string, username: string) {
-  if (!database || !listId || !userId || !username) {
-    return
-  }
-
-  try {
-    await update(ref(database), {
-      [`lists/${listId}/memberProfiles/${userId}/username`]: username
-    })
-  } catch (error) {
-    printError(error, "Failed to set list member username: ")
-  }
-}
-
 export async function dbGetUsernameClaim(usernameKey: string) {
   return getPathSnapshot(`usernames/${usernameKey}`)
 }
