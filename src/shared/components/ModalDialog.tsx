@@ -12,6 +12,7 @@ export type ModalDialogProps = PropsWithChildren &
   Pick<AriaAttributes, "aria-labelledby" | "aria-label" | "aria-describedby"> & {
     shouldLightDismiss?: boolean
     isScrolledBottom?: boolean
+    scrollToTopKey?: string
   }
 
 function safelyOpenDialogAsModal(
@@ -51,6 +52,7 @@ export const ModalDialog = function ({
   children,
   className,
   isScrolledBottom,
+  scrollToTopKey,
   ...props
 }: ModalDialogProps) {
   const dialogRef = useRef<HTMLDialogElement>(null)
@@ -70,6 +72,12 @@ export const ModalDialog = function ({
       safelyCloseDialog(dialog, previousBodyOverflowRef, bodyOverflowWasChangedRef)
     }
   }, [isOpen])
+
+  useEffect(() => {
+    if (isOpen) {
+      dialogRef.current?.scrollTo({ top: 0 })
+    }
+  }, [isOpen, scrollToTopKey])
 
   useEffect(() => {
     const dialog = dialogRef.current

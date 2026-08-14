@@ -109,48 +109,38 @@ export function SettingsModal({
   }
 
   function openAccountTab() {
+    setIsHeaderElevated(false)
+    setIsScrolledBottom(true)
     account.setUsernameInput(account.profile?.username ?? "")
     setTabSelection({ isOpen: true, tab: "account" })
+  }
+
+  function openListTab() {
+    setIsHeaderElevated(false)
+    setIsScrolledBottom(false)
+    setTabSelection({ isOpen: true, tab: "list" })
   }
 
   return (
     <ModalDialog
       isOpen={isOpen}
       onCloseSettingsModal={handleClose}
-      className="mx-auto mt-8 mb-auto"
+      className="mx-auto mt-8 mb-auto w-[min(28rem,calc(100%-2rem))]"
       isScrolledBottom={isScrolledBottom}
+      scrollToTopKey={activeTab}
       onScroll={event => {
         setIsHeaderElevated(event.currentTarget.scrollTop > 0)
         setIsScrolledBottom(event.currentTarget.scrollHeight - event.currentTarget.scrollTop <= event.currentTarget.clientHeight)
       }}
     >
-      <div className="relative flex flex-col gap-2">
-        <SettingsModalHeader isElevated={isHeaderElevated} onCloseSettingsModal={handleClose} />
-
-        <div className="flex border-b border-[#d8d8d8] px-2" role="tablist" aria-label="Settings sections">
-          <button
-            type="button"
-            role="tab"
-            aria-selected={activeTab === "list"}
-            className={`flex-1 border-b-2 px-3 py-2 text-sm font-medium transition ${
-              activeTab === "list" ? "border-[#432000] text-[#432000]" : "border-transparent text-[#8a6d45] hover:text-[#432000]"
-            }`}
-            onClick={() => setTabSelection({ isOpen: true, tab: "list" })}
-          >
-            List
-          </button>
-          <button
-            type="button"
-            role="tab"
-            aria-selected={activeTab === "account"}
-            className={`flex-1 border-b-2 px-3 py-2 text-sm font-medium transition ${
-              activeTab === "account" ? "border-[#432000] text-[#432000]" : "border-transparent text-[#8a6d45] hover:text-[#432000]"
-            }`}
-            onClick={openAccountTab}
-          >
-            Account
-          </button>
-        </div>
+      <div className="relative flex flex-col ">
+        <SettingsModalHeader
+          isElevated={isHeaderElevated}
+          activeTab={activeTab}
+          onCloseSettingsModal={handleClose}
+          onListTabSelect={openListTab}
+          onAccountTabSelect={openAccountTab}
+        />
 
         {activeTab === "list" ? (
           <>
@@ -174,7 +164,7 @@ export function SettingsModal({
               onJoinListIdChange={onJoinListIdChange}
             />
 
-            <section className="mt-3 border-t border-[#d8d8d8] p-2">
+            <section className="border-t border-[#d8d8d8] p-2">
               <h3 className="mb-2.5 text-base">Members</h3>
               <ul className="flex flex-col gap-1.5">
                 {currentListMembers.map(member => {

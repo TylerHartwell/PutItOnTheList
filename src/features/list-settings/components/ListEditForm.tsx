@@ -23,7 +23,7 @@ const ListEditForm = ({
 }: ListEditFormProps) => {
   return (
     <form
-      className=" border-t border-[#d8d8d8] p-2"
+      className="border-t border-[#d8d8d8] p-2"
       onSubmit={event => {
         event.preventDefault()
         onSaveCurrentListName()

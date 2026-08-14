@@ -10,7 +10,7 @@ type ListJoinFormProps = {
 const ListJoinForm = ({ onJoinList, joinListIdInput, joinListError, onJoinListIdChange }: ListJoinFormProps) => {
   return (
     <form
-      className="mt-3 border-t border-[#d8d8d8] p-2"
+      className="border-t border-[#d8d8d8] p-2"
       onSubmit={event => {
         event.preventDefault()
         void onJoinList()

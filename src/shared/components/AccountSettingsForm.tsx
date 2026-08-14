@@ -9,7 +9,7 @@ type AccountSettingsFormProps = {
 export function AccountSettingsForm({ account, onSignOut }: AccountSettingsFormProps) {
   return (
     <div className="select-text p-2">
-      <div className="grid gap-3">
+      <div className="flex flex-col gap-3">
         <div>
           <span className="mb-1 block text-sm font-medium">Email address</span>
           <div className="rounded-2xl px-1 py-1 text-sm text-[#5f4a31]">{account.profile?.email || "Signed-in account"}</div>
@@ -32,9 +32,7 @@ export function AccountSettingsForm({ account, onSignOut }: AccountSettingsFormP
             <button
               type="button"
               onClick={() => void account.saveUsername()}
-              disabled={
-                account.isSavingUsername || Boolean(account.usernameValidationMessage) || account.usernameInput === account.profile?.username
-              }
+              disabled={account.isSavingUsername || Boolean(account.usernameValidationMessage) || account.usernameInput === account.profile?.username}
               className="inline-flex items-center justify-center rounded-2xl bg-[#432000] px-4 py-2.5 text-sm font-medium text-white transition hover:bg-[#301500] disabled:cursor-not-allowed disabled:opacity-60"
             >
               {account.isSavingUsername ? "Saving" : "Save"}
@@ -47,7 +45,7 @@ export function AccountSettingsForm({ account, onSignOut }: AccountSettingsFormP
         <button
           type="button"
           onClick={onSignOut}
-          className="inline-flex items-center justify-center self-start rounded-2xl border border-[#d9c8ab] bg-white px-4 py-2.5 text-sm font-medium text-[#432000] transition hover:border-[#8a6d45] hover:bg-[#fff4de]"
+          className="flex items-center justify-center self-center rounded-2xl bg-[#8f2a2a] px-4 py-2.5 text-sm font-medium text-white transition hover:bg-white hover:text-[#8f2a2a] hover:outline-2 hover:outline-[#252525] active:bg-white active:text-[#8f2a2a] active:outline-2 active:outline-[#8f2a2a] w-min text-nowrap"
         >
           <LogOut className="mr-2 h-4 w-4" />
           Sign out

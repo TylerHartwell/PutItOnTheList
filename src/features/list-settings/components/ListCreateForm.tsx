@@ -9,7 +9,7 @@ type ListCreateFormProps = {
 const ListCreateForm = ({ onCreateList, newListNameInput, onNewListNameChange }: ListCreateFormProps) => {
   return (
     <form
-      className="mt-3 border-t border-[#d8d8d8] p-2"
+      className=" border-t border-[#d8d8d8] p-2"
       onSubmit={event => {
         event.preventDefault()
         onCreateList()
