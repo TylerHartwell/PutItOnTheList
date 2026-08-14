@@ -2,6 +2,7 @@ import { cn } from "@/shared/lib/cn"
 import { vibrate } from "@/shared/utils/vibrate"
 import { useSortable } from "@dnd-kit/react/sortable"
 import { Check, GripVertical, X } from "lucide-react"
+import { useEffect } from "react"
 import type { SortableItemRowProps } from "../types"
 
 export function SortableItemRow({
@@ -17,6 +18,12 @@ export function SortableItemRow({
   onToggleHighlight
 }: SortableItemRowProps) {
   const { ref, handleRef, isDragging: isActive } = useSortable({ id: item.id, index })
+
+  useEffect(() => {
+    if (isActive) {
+      vibrate()
+    }
+  }, [isActive])
 
   function handleToggleHighlight() {
     onToggleHighlight(item)
