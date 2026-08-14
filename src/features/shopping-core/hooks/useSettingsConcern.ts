@@ -56,7 +56,12 @@ export function useSettingsConcern({ userLists }: SettingsConcernParams) {
       return
     }
 
-    if (!window.confirm("Leave this list? You can rejoin later using its list number.")) {
+    const listWillBeDeleted = userLists.isCurrentUserOwner && userLists.currentListMembers.length <= 1
+    const confirmMessage = listWillBeDeleted
+      ? "Leave this list? You are the last member, so this list will be deleted."
+      : "Leave this list? You can rejoin later using its list number."
+
+    if (!window.confirm(confirmMessage)) {
       return
     }
 
