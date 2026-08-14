@@ -66,8 +66,8 @@ export function EmailLinkAuthGate({ children }: EmailLinkAuthGateProps) {
   }
 
   return (
-    <AuthContextProvider value={{ user, account }}>
-      <EmailLinkSignedInBar statusMessage={statusMessage} errorMessage={errorMessage} onSignOut={handleSignOut} account={account}>
+    <AuthContextProvider value={{ user, account, onSignOut: handleSignOut }}>
+      <EmailLinkSignedInBar statusMessage={statusMessage} errorMessage={errorMessage}>
         {children}
       </EmailLinkSignedInBar>
     </AuthContextProvider>

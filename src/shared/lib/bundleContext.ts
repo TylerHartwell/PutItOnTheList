@@ -21,6 +21,7 @@ function bundleContext<T>(defaultValue: T | null = null) {
 type AuthContextValue = {
   user: User | null
   account: UserAccountState
+  onSignOut: () => void
 }
 
 export const [AuthContextProvider, useAuthContextValue] = bundleContext<AuthContextValue>()

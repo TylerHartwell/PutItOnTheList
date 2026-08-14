@@ -11,7 +11,7 @@ import { BulkActions } from "@/features/list-items/components/BulkActions"
 import { useAuthContextValue } from "@/shared/lib/bundleContext"
 
 function ShoppingListContent() {
-  const { user, account } = useAuthContextValue()
+  const { user, account, onSignOut } = useAuthContextValue()
   const userId = user?.uid || ""
   const activeUsername = account.profile?.username || userId
   const { lists, items: itemsState, settings } = useShoppingList(userId, activeUsername)
@@ -50,6 +50,8 @@ function ShoppingListContent() {
         isCurrentUserOwner={settings.isCurrentUserOwner}
         onRemoveMember={settings.removeMember}
         onTransferOwnership={settings.transferOwnership}
+        account={account}
+        onSignOut={onSignOut}
         isOpen={settings.isOpen}
         onCloseSettingsModal={settings.closeSettingsModal}
       />
