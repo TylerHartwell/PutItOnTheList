@@ -2,7 +2,7 @@
 
 import { useCallback, type Dispatch, type SetStateAction } from "react"
 import { database } from "@/shared/lib/firebase/config"
-import { dbAddUserListReference, dbDeleteListById, dbReserveListRecord } from "@/shared/lib/firebase/functions"
+import { dbAddUserListReference, dbDeleteListById, dbReserveListRecord } from "@/shared/lib/firebase/list"
 import { buildListRecord, generateListId, MAX_CREATE_LIST_ATTEMPTS } from "./helpers"
 
 type BooleanRef = { current: boolean }

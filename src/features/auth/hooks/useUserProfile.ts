@@ -3,13 +3,7 @@
 import { useEffect, useState } from "react"
 import { updateProfile, type User } from "firebase/auth"
 import { database } from "@/shared/lib/firebase/config"
-import {
-  dbClaimUsername,
-  dbGetUsernameClaim,
-  dbReleaseUsername,
-  dbSubscribeToUserProfile,
-  dbUpdateUserProfile
-} from "@/shared/lib/firebase/functions"
+import { dbClaimUsername, dbGetUsernameClaim, dbReleaseUsername, dbSubscribeToUserProfile, dbUpdateUserProfile } from "@/shared/lib/firebase/profile"
 import type { UserAccountState, UserProfileRecord } from "@/shared/types/user"
 
 const USERNAME_PATTERN = /^[a-z0-9_]{6,18}$/

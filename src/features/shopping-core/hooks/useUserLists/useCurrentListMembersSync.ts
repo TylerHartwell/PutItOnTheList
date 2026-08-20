@@ -2,7 +2,8 @@
 
 import { useEffect, type Dispatch, type SetStateAction } from "react"
 import { database } from "@/shared/lib/firebase/config"
-import { dbSetListMemberUsername, dbSubscribeToListById } from "@/shared/lib/firebase/functions"
+import { dbSubscribeToListById } from "@/shared/lib/firebase/profile"
+import { dbSetListMemberUsername } from "@/shared/lib/firebase/list"
 import type { ListMember } from "@/shared/types/shopping"
 
 type UseCurrentListMembersSyncParams = {

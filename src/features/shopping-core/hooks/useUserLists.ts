@@ -2,15 +2,8 @@
 
 import { useEffect, useRef, useState } from "react"
 import { database } from "@/shared/lib/firebase/config"
-import {
-  dbChangeListOwner,
-  dbJoinList,
-  dbLeaveList,
-  dbRemoveListMember,
-  dbRenameList,
-  dbSetListMemberUsername,
-  dbSetUserCurrentListId
-} from "@/shared/lib/firebase/functions"
+import { dbChangeListOwner, dbJoinList, dbLeaveList, dbRemoveListMember, dbRenameList, dbSetListMemberUsername } from "@/shared/lib/firebase/list"
+import { dbSetUserCurrentListId } from "@/shared/lib/firebase/profile"
 import type { ListMember, StoredList } from "@/shared/types/shopping"
 import { useCurrentListMembersSync } from "./useUserLists/useCurrentListMembersSync"
 import { useListCreation } from "./useUserLists/useListCreation"

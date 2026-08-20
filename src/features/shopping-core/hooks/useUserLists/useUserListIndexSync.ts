@@ -2,7 +2,8 @@
 
 import { useEffect, type Dispatch, type SetStateAction } from "react"
 import { database } from "@/shared/lib/firebase/config"
-import { dbClearUserListMembership, dbGetListById, dbGetUserCurrentListId, dbSubscribeToUserListIds } from "@/shared/lib/firebase/functions"
+import { dbClearUserListMembership } from "@/shared/lib/firebase/list"
+import { dbGetListById, dbGetUserCurrentListId, dbSubscribeToUserListIds } from "@/shared/lib/firebase/profile"
 import type { StoredList } from "@/shared/types/shopping"
 
 type BooleanRef = { current: boolean }

@@ -5,9 +5,9 @@ import {
   dbDeleteItems,
   dbReorderItems,
   dbSaveEditedItem,
-  dbSubscribeToListItems,
-  generateSequentialSortOrder
-} from "@/shared/lib/firebase/functions"
+  dbSubscribeToListItems
+} from "@/shared/lib/firebase/items"
+import { generateSequentialSortOrder } from "@/shared/lib/firebase/shared"
 import type { ShoppingItem } from "@/shared/types/shopping"
 
 export function useItemsConcern(userId: string, currentListId: string) {
