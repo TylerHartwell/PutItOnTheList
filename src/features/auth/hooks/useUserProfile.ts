@@ -54,7 +54,6 @@ function buildProfileSnapshot(user: User, rawProfile: Partial<UserProfileRecord>
   const persistedUsername = typeof rawProfile?.username === "string" ? canonicalizeUsername(rawProfile.username) : ""
 
   return {
-    uid: user.uid,
     email: user.email ?? rawProfile?.email ?? "",
     username: persistedUsername,
     createdAt: typeof rawProfile?.createdAt === "number" ? rawProfile.createdAt : now,
@@ -176,10 +175,6 @@ export function useUserProfile(user: User | null): UserAccountState {
             nextProfileUpdate.email = nextProfile.email
           }
 
-          if (rawProfile?.uid !== nextProfile.uid) {
-            nextProfileUpdate.uid = nextProfile.uid
-          }
-
           if (rawProfile?.username !== nextProfile.username && nextProfile.username) {
             nextProfileUpdate.username = nextProfile.username
           }
@@ -254,7 +249,6 @@ export function useUserProfile(user: User | null): UserAccountState {
 
       try {
         await dbUpdateUserProfile(user.uid, {
-          uid: user.uid,
           email: user.email ?? profile?.email ?? "",
           username: resolvedUsername,
           createdAt: profile?.createdAt ?? nextUpdatedAt,
