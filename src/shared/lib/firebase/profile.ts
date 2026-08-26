@@ -81,6 +81,10 @@ export function dbSubscribeToUserProfile(userId: string, callback: (snapshot: Da
   return subscribeToPath(`users/${userId}`, callback, onError)
 }
 
+export async function dbGetUserProfile(userId: string) {
+  return getPathSnapshot(`users/${userId}`)
+}
+
 export async function dbUpdateUserProfile(userId: string, updates: Record<string, unknown>) {
   if (!database || !userId) {
     return

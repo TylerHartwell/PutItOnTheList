@@ -3,12 +3,19 @@
 import { useEffect, useState } from "react"
 import { updateProfile, type User } from "firebase/auth"
 import { database } from "@/shared/lib/firebase/config"
-import { dbClaimUsername, dbGetUsernameClaim, dbReleaseUsername, dbSubscribeToUserProfile, dbUpdateUserProfile } from "@/shared/lib/firebase/profile"
+import {
+  dbClaimUsername,
+  dbGetUserProfile,
+  dbGetUsernameClaim,
+  dbReleaseUsername,
+  dbSubscribeToUserProfile,
+  dbUpdateUserProfile
+} from "@/shared/lib/firebase/profile"
 import type { UserAccountState, UserProfileRecord } from "@/shared/types/user"
 
 const USERNAME_PATTERN = /^[a-z0-9_]{6,18}$/
 
-function canonicalizeUsername(username: string) {
+function trimAndLower(username: string) {
   return username.trim().toLowerCase()
 }
 
@@ -25,7 +32,11 @@ function getUsernameValidationError(username: string) {
 }
 
 function usernameToKey(username: string) {
-  const normalized = canonicalizeUsername(username)
+  return trimAndLower(username)
+}
+
+function legacyUsernameToKey(username: string) {
+  const normalized = trimAndLower(username)
   return Array.from(normalized)
     .map(character => character.codePointAt(0)?.toString(16) ?? "")
     .join("_")
@@ -45,7 +56,7 @@ function getDatabaseUnavailableError() {
 
 function buildProfileSnapshot(user: User, rawProfile: Partial<UserProfileRecord> | null): UserProfileRecord {
   const now = Date.now()
-  const persistedUsername = typeof rawProfile?.username === "string" ? canonicalizeUsername(rawProfile.username) : ""
+  const persistedUsername = typeof rawProfile?.username === "string" ? trimAndLower(rawProfile.username) : ""
 
   return {
     email: user.email ?? rawProfile?.email ?? "",
@@ -63,7 +74,7 @@ export function useUserProfile(user: User | null): UserAccountState {
   const [isSavingUsername, setIsSavingUsername] = useState(false)
   const [statusMessage, setStatusMessage] = useState("")
   const [errorMessage, setErrorMessage] = useState("")
-  const usernameCandidate = canonicalizeUsername(usernameInput)
+  const usernameCandidate = trimAndLower(usernameInput)
   const usernameValidationMessage = usernameCandidate ? getUsernameValidationError(usernameCandidate) : ""
 
   useEffect(() => {
@@ -114,8 +125,8 @@ export function useUserProfile(user: User | null): UserAccountState {
     })
 
     const resolveUsernameSetupRequirement = async (nextProfile: UserProfileRecord) => {
-      const normalizedUsername = canonicalizeUsername(nextProfile.username)
-      const normalizedEmail = canonicalizeUsername(nextProfile.email)
+      const normalizedUsername = trimAndLower(nextProfile.username)
+      const normalizedEmail = trimAndLower(nextProfile.email)
 
       if (!normalizedUsername || normalizedUsername === normalizedEmail || getUsernameValidationError(normalizedUsername)) {
         if (!isCancelled) {
@@ -126,13 +137,32 @@ export function useUserProfile(user: User | null): UserAccountState {
       }
 
       try {
-        const usernameClaimSnapshot = await dbGetUsernameClaim(usernameToKey(normalizedUsername))
+        const currentUsernameKey = usernameToKey(normalizedUsername)
+        const usernameClaimSnapshot = await dbGetUsernameClaim(currentUsernameKey)
+        let hasUniqueUsername = Boolean(usernameClaimSnapshot?.exists() && usernameClaimSnapshot.val() === user.uid)
+
+        if (!hasUniqueUsername) {
+          const legacyUsernameKey = legacyUsernameToKey(normalizedUsername)
+
+          if (legacyUsernameKey !== currentUsernameKey) {
+            const legacyClaimSnapshot = await dbGetUsernameClaim(legacyUsernameKey)
+            const ownsLegacyClaim = Boolean(legacyClaimSnapshot?.exists() && legacyClaimSnapshot.val() === user.uid)
+
+            if (ownsLegacyClaim) {
+              const didClaimCurrentUsername = await dbClaimUsername(currentUsernameKey, user.uid)
+
+              if (didClaimCurrentUsername) {
+                await dbReleaseUsername(legacyUsernameKey, user.uid)
+                hasUniqueUsername = true
+              }
+            }
+          }
+        }
 
         if (isCancelled) {
           return
         }
 
-        const hasUniqueUsername = Boolean(usernameClaimSnapshot?.exists() && usernameClaimSnapshot.val() === user.uid)
         setRequiresUsernameSetup(!hasUniqueUsername)
       } catch {
         if (isCancelled) {
@@ -215,8 +245,7 @@ export function useUserProfile(user: User | null): UserAccountState {
       return
     }
 
-    const typedUsername = usernameInput.trim()
-    const resolvedUsername = canonicalizeUsername(typedUsername)
+    const resolvedUsername = trimAndLower(usernameInput)
     const usernameValidationError = getUsernameValidationError(resolvedUsername)
 
     if (usernameValidationError) {
@@ -249,14 +278,24 @@ export function useUserProfile(user: User | null): UserAccountState {
           updatedAt: nextUpdatedAt
         })
       } catch (error) {
-        // Release newly claimed username if profile persistence fails.
+        let profileWasPersisted = false
+
         try {
-          await dbReleaseUsername(nextUsernameKey, user.uid)
+          const persistedProfile = await dbGetUserProfile(user.uid)
+          profileWasPersisted = persistedProfile?.child("username").val() === resolvedUsername
         } catch {
-          // Keep original failure as the surfaced error.
+          // Preserve the claim when the write outcome cannot be verified.
         }
 
-        throw error
+        if (!profileWasPersisted) {
+          try {
+            await dbReleaseUsername(nextUsernameKey, user.uid)
+          } catch {
+            // Keep the original failure as the surfaced error.
+          }
+
+          throw error
+        }
       }
 
       // Keep username save successful even if displayName update fails.
