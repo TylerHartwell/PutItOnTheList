@@ -17,7 +17,7 @@ const ListCreateForm = ({ onCreateList, newListNameInput, onNewListNameChange }:
     >
       <h3 className="mb-2.5 text-base">Create New List</h3>
       <label className="mb-1 block text-sm" htmlFor="new-list-name">
-        Local List Name
+        List Name
       </label>
       <div className="flex min-w-0 items-center gap-1.5">
         <input
