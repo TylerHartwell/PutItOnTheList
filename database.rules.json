@@ -9,15 +9,15 @@
     },
     "lists": {
       "$listId": {
-        ".read": "auth != null && (!data.exists() || root.child('lists').child($listId).child('members').child(auth.uid).exists())",
-        ".write": "auth != null && (!data.exists() ? (newData.child('owner').val() === auth.uid && newData.child('members').child(auth.uid).val() === true) : (!newData.exists() && root.child('lists').child($listId).child('members').child(auth.uid).exists()))",
+        ".read": "auth != null && root.child('lists').child($listId).child('members').child(auth.uid).exists()",
+        ".write": "auth != null && (!data.exists() ? (newData.child('owner').val() === auth.uid && newData.child('members').child(auth.uid).val() === true) : (!newData.exists() && root.child('lists').child($listId).child('owner').val() === auth.uid))",
         ".validate": "!newData.exists() || (newData.child('owner').isString() && newData.child('owner').val().length > 0 && newData.child('listName').isString() && newData.child('listName').val().length > 0 && newData.child('listName').val().length <= 80 && newData.child('createdAt').isNumber() && newData.child('updatedAt').isNumber() && newData.child('lastEditedByUid').isString() && newData.child('lastEditedByUid').val().length > 0 && newData.child('lastEditedByUid').val().length <= 128 && newData.child('members').child(newData.child('owner').val()).val() === true)",
         "owner": {
           ".write": "auth != null && ((data.exists() && data.val() === auth.uid && newData.val() !== auth.uid && root.child('lists').child($listId).child('members').child(newData.val()).exists()) || (!data.exists() && newData.val() === auth.uid))",
           ".validate": "newData.isString() && newData.val().length > 0"
         },
         "listName": {
-          ".write": "auth != null && root.child('lists').child($listId).child('members').child(auth.uid).exists() && newData.isString() && newData.val().length > 0 && newData.val().length <= 80",
+          ".write": "auth != null && root.child('lists').child($listId).child('owner').val() === auth.uid && newData.isString() && newData.val().length > 0 && newData.val().length <= 80",
           ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 80"
         },
         "createdAt": {
@@ -99,6 +99,11 @@
           "$listId": {
             ".write": "auth != null && (auth.uid === $uid || (!newData.exists() && root.child('lists').child($listId).child('owner').val() === auth.uid))",
             ".validate": "!newData.exists() || newData.val() === true"
+          }
+        },
+        "listNicknames": {
+          "$listId": {
+            ".validate": "!newData.exists() || (newData.isString() && newData.val().length <= 80)"
           }
         }
       }
