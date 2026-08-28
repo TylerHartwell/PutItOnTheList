@@ -29,7 +29,7 @@ export function ListSelectorBar({ storedLists, currentListId, currentListLastEdi
         >
           {storedLists.map(list => (
             <option key={list.listId} value={list.listId}>
-              {list.listName || list.listId}
+              {list.customName || list.listName || list.listId}
             </option>
           ))}
         </select>

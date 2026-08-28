@@ -11,6 +11,7 @@ export type ShoppingItem = {
 export type StoredList = {
   listId: string
   listName: string
+  customName?: string
   ownerUid: string
   lastEditedByUid: string
   createdAt?: number

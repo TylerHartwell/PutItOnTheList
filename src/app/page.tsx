@@ -13,7 +13,7 @@ import { useAuthContextValue } from "@/shared/lib/bundleContext"
 function ShoppingListContent() {
   const { user, account, onSignOut } = useAuthContextValue()
   const userId = user?.uid || ""
-  const activeUsername = account.profile?.username || userId
+  const activeUsername = account.profile?.username || ""
   const { lists, items: itemsState, settings } = useShoppingList(userId, activeUsername)
 
   if (lists.isLoading) {
@@ -34,12 +34,15 @@ function ShoppingListContent() {
         currentListId={lists.currentListId}
         currentListNameInput={settings.currentListNameInput}
         currentListNameError={settings.currentListNameError}
+        currentListNicknameInput={settings.currentListNicknameInput}
         newListNameInput={settings.newListNameInput}
         joinListIdInput={settings.joinListIdInput}
         joinListError={settings.joinListError}
         copyList={settings.copyList}
         onCurrentListNameChange={settings.changeCurrentListNameInput}
         onSaveCurrentListName={settings.editListName}
+        onCurrentListNicknameChange={settings.changeCurrentListNicknameInput}
+        onSaveCurrentListNickname={settings.saveCurrentListNickname}
         onLeaveList={settings.leaveList}
         onNewListNameChange={settings.changeNewListNameInput}
         onCreateList={settings.createList}

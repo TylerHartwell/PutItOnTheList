@@ -16,8 +16,8 @@ export function generateListId(): string {
   return Array.from({ length: idLength }, () => alphabet[Math.floor(Math.random() * alphabet.length)]).join("")
 }
 
-export function buildListRecord(userId: string, activeUsername: string, listName: string) {
-  const trimmedName = trimAndCollapseSpaces(listName)
+export function buildListRecord(userId: string, activeUsername: string, listName: string, listId: string) {
+  const trimmedName = trimAndCollapseSpaces(listName) || listId
 
   return {
     owner: userId,

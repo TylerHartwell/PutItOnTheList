@@ -21,11 +21,11 @@ export function useListCreation({ userId, activeUsername, setCurrentListId, isBo
         return
       }
 
-      const listRecord = buildListRecord(userId, activeUsername, listName)
       let newListId = ""
 
       for (let attempt = 0; attempt < MAX_CREATE_LIST_ATTEMPTS; attempt += 1) {
         const candidateListId = generateListId()
+        const listRecord = buildListRecord(userId, activeUsername, listName, candidateListId)
         const reservationResult = await dbReserveListRecord(candidateListId, listRecord)
 
         if (reservationResult) {

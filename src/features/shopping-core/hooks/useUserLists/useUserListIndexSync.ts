@@ -3,7 +3,7 @@
 import { useEffect, type Dispatch, type SetStateAction } from "react"
 import { database } from "@/shared/lib/firebase/config"
 import { dbClearUserListMembership } from "@/shared/lib/firebase/list"
-import { dbGetListById, dbGetUserCurrentListId, dbSubscribeToUserListIds } from "@/shared/lib/firebase/profile"
+import { dbGetListById, dbGetUserCurrentListId, dbGetUserListNicknames, dbSubscribeToUserListIds } from "@/shared/lib/firebase/profile"
 import type { StoredList } from "@/shared/types/shopping"
 
 type BooleanRef = { current: boolean }
@@ -99,30 +99,34 @@ export function useUserListIndexSync({
         })
 
         const persistedCurrentListPromise = dbGetUserCurrentListId(userId)
+        const listNicknamesPromise = dbGetUserListNicknames(userId)
 
-        void Promise.all([Promise.all(listMetadataPromises), persistedCurrentListPromise]).then(([lists, persistedCurrentListId]) => {
-          if (isCancelled) {
-            return
+        void Promise.all([Promise.all(listMetadataPromises), persistedCurrentListPromise, listNicknamesPromise]).then(
+          ([lists, persistedCurrentListId, listNicknames]) => {
+            if (isCancelled) {
+              return
+            }
+
+            const validLists = lists
+              .filter((list): list is StoredList => list !== null)
+              .map(list => ({ ...list, customName: listNicknames[list.listId] }))
+            setStoredLists(validLists)
+            setCurrentListId(previousListId => {
+              if (previousListId && validLists.some(list => list.listId === previousListId)) {
+                return previousListId
+              }
+
+              if (persistedCurrentListId && validLists.some(list => list.listId === persistedCurrentListId)) {
+                return persistedCurrentListId
+              }
+
+              return validLists[0]?.listId ?? ""
+            })
+
+            hasResolvedInitialCurrentListRef.current = true
+            setIsLoading(false)
           }
-
-          const validLists = lists.filter((list): list is StoredList => list !== null)
-          setStoredLists(validLists)
-
-          setCurrentListId(previousListId => {
-            if (previousListId && validLists.some(list => list.listId === previousListId)) {
-              return previousListId
-            }
-
-            if (persistedCurrentListId && validLists.some(list => list.listId === persistedCurrentListId)) {
-              return persistedCurrentListId
-            }
-
-            return validLists[0]?.listId ?? ""
-          })
-
-          hasResolvedInitialCurrentListRef.current = true
-          setIsLoading(false)
-        })
+        )
       },
       () => {
         if (isCancelled) {

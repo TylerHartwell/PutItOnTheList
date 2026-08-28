@@ -1,6 +1,6 @@
 import { ref, update } from "firebase/database"
 import { database } from "./config"
-import { createListAuditUpdates, getTimestamp, printError } from "./shared"
+import { createListAuditUpdates, getTimestamp, printError, runTransactionAtPath } from "./shared"
 import { trimAndCollapseSpaces } from "@/shared/utils/text"
 
 export async function dbAddUserListReference(userId: string, listId: string) {
@@ -47,9 +47,7 @@ export async function dbDeleteListById(listId: string) {
 }
 
 export async function dbReserveListRecord(listId: string, listRecord: Record<string, unknown>) {
-  const reservationResult = await (
-    await import("./shared")
-  ).runTransactionAtPath(`lists/${listId}`, currentValue => {
+  const reservationResult = await runTransactionAtPath(`lists/${listId}`, currentValue => {
     if (currentValue !== null) {
       return
     }
@@ -60,8 +58,11 @@ export async function dbReserveListRecord(listId: string, listRecord: Record<str
   return Boolean(reservationResult?.committed)
 }
 
+const USERNAME_PATTERN = /^[a-z0-9_]{6,18}$/
+
 export async function dbSetListMemberUsername(listId: string, userId: string, username: string) {
-  if (!database || !listId || !userId || !username) {
+  // Rules validate this shape; skip silently to avoid noisy permission_denied errors for uid fallbacks/placeholders.
+  if (!database || !listId || !userId || !USERNAME_PATTERN.test(username)) {
     return
   }
 

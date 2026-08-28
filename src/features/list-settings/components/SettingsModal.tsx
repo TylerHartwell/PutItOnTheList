@@ -24,12 +24,15 @@ type SettingsModalProps = DialogHTMLAttributes<HTMLDialogElement> & {
   currentListId: string
   currentListNameInput: string
   currentListNameError: string
+  currentListNicknameInput: string
   newListNameInput: string
   joinListIdInput: string
   joinListError: string
   copyList: () => Promise<boolean>
   onCurrentListNameChange: (value: string) => void
   onSaveCurrentListName: () => void
+  onCurrentListNicknameChange: (value: string) => void
+  onSaveCurrentListNickname: () => void
   onLeaveList: () => void
   onNewListNameChange: (value: string) => void
   onCreateList: () => void
@@ -50,12 +53,15 @@ export function SettingsModal({
   currentListId,
   currentListNameInput,
   currentListNameError,
+  currentListNicknameInput,
   newListNameInput,
   joinListIdInput,
   joinListError,
   copyList,
   onCurrentListNameChange,
   onSaveCurrentListName,
+  onCurrentListNicknameChange,
+  onSaveCurrentListNickname,
   onLeaveList,
   onNewListNameChange,
   onCreateList,
@@ -148,9 +154,13 @@ export function SettingsModal({
               currentListId={currentListId}
               currentListNameInput={currentListNameInput}
               currentListNameError={currentListNameError}
+              currentListNicknameInput={currentListNicknameInput}
               copyStatus={copyStatus}
+              isCurrentUserOwner={isCurrentUserOwner}
               onCurrentListNameChange={onCurrentListNameChange}
               onSaveCurrentListName={onSaveCurrentListName}
+              onCurrentListNicknameChange={onCurrentListNicknameChange}
+              onSaveCurrentListNickname={onSaveCurrentListNickname}
               onLeaveList={onLeaveList}
               onCopyList={handleCopyList}
             />

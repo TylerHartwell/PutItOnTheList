@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react"
 import { database } from "@/shared/lib/firebase/config"
 import { dbChangeListOwner, dbJoinList, dbLeaveList, dbRemoveListMember, dbRenameList, dbSetListMemberUsername } from "@/shared/lib/firebase/list"
-import { dbSetUserCurrentListId } from "@/shared/lib/firebase/profile"
+import { dbSetUserCurrentListId, dbSetUserListNickname } from "@/shared/lib/firebase/profile"
 import type { ListMember, StoredList } from "@/shared/types/shopping"
 import { useCurrentListMembersSync } from "./useUserLists/useCurrentListMembersSync"
 import { useListCreation } from "./useUserLists/useListCreation"
@@ -144,6 +144,23 @@ export function useUserLists(userId: string, activeUsername: string) {
     }
   }
 
+  async function setListNickname(listId: string, nickname: string) {
+    await dbSetUserListNickname(userId, listId, nickname)
+
+    setStoredLists(previousLists =>
+      previousLists.map(list => {
+        if (list.listId !== listId) {
+          return list
+        }
+
+        return {
+          ...list,
+          customName: nickname || undefined
+        }
+      })
+    )
+  }
+
   async function removeMember(memberUserId: string) {
     if (!isCurrentUserOwner || memberUserId === currentListOwnerUid) {
       return
@@ -175,6 +192,7 @@ export function useUserLists(userId: string, activeUsername: string) {
     leaveList,
     renameList,
     joinList,
+    setListNickname,
     removeMember,
     transferOwnership
   }

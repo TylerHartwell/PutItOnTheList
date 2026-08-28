@@ -13,12 +13,15 @@ export function useSettingsConcern({ userLists }: SettingsConcernParams) {
   const [joinListError, setJoinListError] = useState("")
   const [currentListNameError, setCurrentListNameError] = useState("")
   const currentListName = userLists.storedLists.find(list => list.listId === userLists.currentListId)?.listName ?? ""
+  const currentListNickname = userLists.storedLists.find(list => list.listId === userLists.currentListId)?.customName ?? ""
 
   const [currentListNameInput, setCurrentListNameInput] = useState(currentListName)
+  const [currentListNicknameInput, setCurrentListNicknameInput] = useState(currentListNickname)
 
   function reset() {
     setCurrentListNameInput(currentListName)
     setCurrentListNameError("")
+    setCurrentListNicknameInput(currentListNickname)
     setNewListNameInput("")
     setJoinListIdInput("")
     setJoinListError("")
@@ -42,6 +45,10 @@ export function useSettingsConcern({ userLists }: SettingsConcernParams) {
 
   function changeNewListNameInput(value: string) {
     setNewListNameInput(value)
+  }
+
+  function changeCurrentListNicknameInput(value: string) {
+    setCurrentListNicknameInput(value)
   }
 
   function changeJoinListIdInput(value: string) {
@@ -121,6 +128,16 @@ export function useSettingsConcern({ userLists }: SettingsConcernParams) {
     closeSettingsModal()
   }
 
+  async function saveCurrentListNickname() {
+    if (!userLists.currentListId) {
+      return
+    }
+
+    const trimmedNickname = trimAndCollapseSpaces(currentListNicknameInput)
+    await userLists.setListNickname(userLists.currentListId, trimmedNickname)
+    closeSettingsModal()
+  }
+
   async function removeMember(memberUid: string) {
     await userLists.removeMember(memberUid)
   }
@@ -136,6 +153,9 @@ export function useSettingsConcern({ userLists }: SettingsConcernParams) {
     currentListNameInput,
     changeCurrentListNameInput,
     currentListNameError,
+    currentListNicknameInput,
+    changeCurrentListNicknameInput,
+    saveCurrentListNickname,
     newListNameInput,
     changeNewListNameInput,
     joinListIdInput,

@@ -17,6 +17,37 @@ export function dbSubscribeToUserListIds(userId: string, callback: (snapshot: Da
   return subscribeToPath(`users/${userId}/lists`, callback, onError)
 }
 
+export async function dbGetUserListNicknames(userId: string) {
+  const snapshot = await getPathSnapshot(`users/${userId}/listNicknames`)
+  if (!snapshot || !snapshot.exists()) {
+    return {} as Record<string, string>
+  }
+
+  const nicknames = snapshot.val() as Record<string, unknown>
+  return Object.entries(nicknames).reduce<Record<string, string>>((result, [listId, value]) => {
+    if (typeof value === "string" && value.length > 0) {
+      result[listId] = value
+    }
+
+    return result
+  }, {})
+}
+
+export async function dbSetUserListNickname(userId: string, listId: string, nickname: string) {
+  if (!database || !userId || !listId) {
+    return
+  }
+
+  try {
+    await update(ref(database), {
+      [`users/${userId}/listNicknames/${listId}`]: nickname || null
+    })
+  } catch (error) {
+    printError(error, "Failed to set list nickname: ")
+    throw error
+  }
+}
+
 export async function dbGetListById(listId: string) {
   return getPathSnapshot(`lists/${listId}`)
 }
@@ -42,7 +73,6 @@ export async function dbSetUserCurrentListId(userId: string, listId: string | nu
 export async function dbGetUsernameClaim(usernameKey: string) {
   return getPathSnapshot(`usernames/${usernameKey}`)
 }
-
 export async function dbClaimUsername(usernameKey: string, userId: string) {
   const claimResult = await runTransactionAtPath(`usernames/${usernameKey}`, currentValue => {
     if (currentValue === null || currentValue === userId) {
