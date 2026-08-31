@@ -162,8 +162,16 @@ export function useUserLists(userId: string, activeUsername: string) {
   }
 
   async function removeMember(memberUserId: string) {
-    if (!isCurrentUserOwner || memberUserId === currentListOwnerUid) {
-      return
+    if (!isCurrentUserOwner) {
+      throw new Error("Only the current owner can remove members.")
+    }
+
+    if (memberUserId === currentListOwnerUid) {
+      throw new Error("The list owner cannot be removed.")
+    }
+
+    if (!currentListMembers.some(member => member.uid === memberUserId)) {
+      throw new Error("The selected user is no longer a member of this list.")
     }
 
     await dbRemoveListMember(currentListId, memberUserId)
@@ -171,12 +179,12 @@ export function useUserLists(userId: string, activeUsername: string) {
 
   async function transferOwnership(nextOwnerUid: string) {
     if (!isCurrentUserOwner) {
-      return
+      throw new Error("Only the current owner can transfer ownership.")
     }
 
     const memberUserIds = currentListMembers.map(member => member.uid)
 
-    await dbChangeListOwner(nextOwnerUid, currentListId, memberUserIds)
+    await dbChangeListOwner(userId, nextOwnerUid, currentListId, memberUserIds)
   }
 
   return {

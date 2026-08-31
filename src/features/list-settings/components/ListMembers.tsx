@@ -1,3 +1,4 @@
+import { useState } from "react"
 import type { ListMember } from "@/shared/types/shopping"
 import { SettingsButton } from "./SettingsButton"
 
@@ -21,6 +22,36 @@ type ListMembersProps = {
 }
 
 export function ListMembers({ currentListMembers, currentListOwnerUid, isCurrentUserOwner, onRemoveMember, onTransferOwnership }: ListMembersProps) {
+  const [actionError, setActionError] = useState("")
+  const [pendingMemberUid, setPendingMemberUid] = useState("")
+
+  async function runMemberAction(member: ListMember, action: "remove" | "transfer") {
+    const displayName = getMemberDisplayName(member)
+    const confirmationMessage =
+      action === "transfer"
+        ? `Make ${displayName} the owner? You will no longer be able to manage this list.`
+        : `Remove ${displayName} from this list? They can rejoin later using the list number.`
+
+    if (!window.confirm(confirmationMessage)) {
+      return
+    }
+
+    setActionError("")
+    setPendingMemberUid(member.uid)
+
+    try {
+      if (action === "transfer") {
+        await onTransferOwnership(member.uid)
+      } else {
+        await onRemoveMember(member.uid)
+      }
+    } catch (error) {
+      setActionError(error instanceof Error ? error.message : "Could not update the list members right now.")
+    } finally {
+      setPendingMemberUid("")
+    }
+  }
+
   return (
     <section className="border-t border-[#d8d8d8] p-2">
       <h3 className="mb-2.5 text-base">Members</h3>
@@ -38,13 +69,14 @@ export function ListMembers({ currentListMembers, currentListOwnerUid, isCurrent
                 {isOwner ? <span className="rounded-md px-2 py-1 text-xs">Owner</span> : null}
                 {isCurrentUserOwner && !isOwner ? (
                   <>
-                    <SettingsButton type="button" onClick={() => void onTransferOwnership(member.uid)}>
+                    <SettingsButton type="button" disabled={Boolean(pendingMemberUid)} onClick={() => void runMemberAction(member, "transfer")}>
                       Make Owner
                     </SettingsButton>
                     <SettingsButton
                       type="button"
                       className="bg-[#8f2a2a] hover:text-[#8f2a2a] active:text-[#8f2a2a] active:outline-[#8f2a2a]"
-                      onClick={() => void onRemoveMember(member.uid)}
+                      disabled={Boolean(pendingMemberUid)}
+                      onClick={() => void runMemberAction(member, "remove")}
                     >
                       Remove
                     </SettingsButton>
@@ -55,6 +87,11 @@ export function ListMembers({ currentListMembers, currentListOwnerUid, isCurrent
           )
         })}
       </ul>
+      {actionError ? (
+        <p className="mt-2 text-sm text-[#8f2a2a]" role="alert">
+          {actionError}
+        </p>
+      ) : null}
     </section>
   )
 }

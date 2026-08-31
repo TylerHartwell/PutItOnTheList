@@ -75,30 +75,39 @@ export async function dbSetListMemberUsername(listId: string, userId: string, us
   }
 }
 
-export async function dbChangeListOwner(userId: string, listId: string, memberUserIds: string[]) {
-  if (!database || !userId || !listId) {
-    return
+export async function dbChangeListOwner(currentUserId: string, nextOwnerUid: string, listId: string, memberUserIds: string[]) {
+  if (!database) {
+    throw new Error("Database is unavailable.")
   }
 
-  if (!memberUserIds.some(memberUserId => memberUserId === userId)) {
-    return
+  if (!currentUserId || !nextOwnerUid || !listId) {
+    throw new Error("Could not change the list owner.")
+  }
+
+  if (!memberUserIds.some(memberUserId => memberUserId === nextOwnerUid)) {
+    throw new Error("The selected user is no longer a member of this list.")
   }
 
   const updates: Record<string, unknown> = {
-    [`lists/${listId}/owner`]: userId,
-    [`lists/${listId}/updatedAt`]: getTimestamp()
+    [`lists/${listId}/owner`]: nextOwnerUid,
+    ...createListAuditUpdates(listId, currentUserId)
   }
 
   try {
     await update(ref(database), updates)
   } catch (error) {
     printError(error, "Failed to change list owner:")
+    throw error
   }
 }
 
 export async function dbRemoveListMember(listId: string, userId: string) {
-  if (!database || !listId || !userId) {
-    return
+  if (!database) {
+    throw new Error("Database is unavailable.")
+  }
+
+  if (!listId || !userId) {
+    throw new Error("Could not remove the member.")
   }
 
   const updates: Record<string, unknown> = {
@@ -112,6 +121,7 @@ export async function dbRemoveListMember(listId: string, userId: string) {
     await update(ref(database), updates)
   } catch (error) {
     printError(error, "Failed to remove list member:")
+    throw error
   }
 }
 
